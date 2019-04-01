@@ -56,6 +56,7 @@ export default function middleware (app:koa) {
     await next();
   });
 
+  // mongodb
   app.use( async (ctx:koa.ParameterizedContext<any, {}>, next: ()=>Promise<any>)=> {
     const mongooseState = mongoose.connection.readyState;
     switch (mongooseState) {
@@ -82,6 +83,7 @@ export default function middleware (app:koa) {
 
   app.use(koaJwt({
     secret: conf.secret.jwt.key,
+    cookie: 'token',
   }).unless({
     path: [
       '/api/session'

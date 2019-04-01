@@ -111,7 +111,7 @@ router.post('/api/session', async (ctx:koa.ParameterizedContext<any, {}>)=> {
     token,
     {
       domain:conf.domainAddress,
-      maxAge: 24*3600*1000,
+      maxAge: 1*3600*1000,
     });
 
     ctx.body = {message: `welcome ${user.name}`, id:user._id, token, name:user.name, email:user.email, groups:user.groups};
