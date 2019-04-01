@@ -12,6 +12,11 @@ export interface IUserEssential {
   groups: string[], // array of group name, 'guest', 'users', 'visitors', or 'administrators'
 }
 
+export interface ITokenContent extends IUserEssential{
+  iat:number,
+  exp:number,
+}
+
 export interface IUser extends IUserEssential {
   createdAt?: Date,
   updatedAt?: Date,
@@ -20,5 +25,5 @@ export interface IUser extends IUserEssential {
 }
 
 export interface ICustomState {
-  user?: IUserEssential,
+  user?: ITokenContent,
 }

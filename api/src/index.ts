@@ -26,6 +26,31 @@ router.get('/', async (ctx:koa.ParameterizedContext<any, {}>)=> {
 })
 
 router.get('/api/user/current', async (ctx:koa.ParameterizedContext<ICustomState, {}>)=> {
+  const user = ctx.state.user;
+  if (user) {
+    const now = Math.floor(Date.now() / 1000);
+    const eta = ctx.state.user.exp - now;
+    if (eta >= 0 && eta <= 360) {
+      // sign a new jwt
+      const token = jwt.sign({
+        id: user._id,
+        fullName: user.name,
+        email: user.email,
+        groups: user.groups,
+      }, 
+      conf.secret.jwt.key,
+      {expiresIn:'1h'})
+      // set token to domain cookie
+      ctx.cookies.set(
+      'token',
+      token,
+      {
+        domain:conf.domainAddress,
+        maxAge: 1*3600*1000,
+        overwrite: true,
+      });
+    }
+  }
   ctx.body = {user: ctx.state}
 })
 
@@ -124,6 +149,11 @@ router.post('/api/session', async (ctx:koa.ParameterizedContext<any, {}>)=> {
 
   // ctx.response.body = {message:'OK'};
 });
+
+router.delete('/api/session',  async (ctx:koa.ParameterizedContext<any, {}>)=> {
+  ctx.cookies.set('token', '', {domain:conf.domainAddress, maxAge: 1000, overwrite:true});
+  ctx.body = {message:'OK'}
+})
 
 app.use(router.routes());
 app.listen(8000, '0.0.0.0');
