@@ -77,7 +77,8 @@ export default function middleware (app:koa) {
 
   // always json type
   app.use( async (ctx:koa.ParameterizedContext<any, {}>, next: ()=>Promise<any>)=> {
-    ctx.response.type='json';
+    ctx.type = 'json';
+    ctx.body = {};
     await next();
   });
 

@@ -20,39 +20,47 @@ app.use(async (ctx:koa.ParameterizedContext<any, {}>, next:()=>Promise<any>)=> {
   await next();
 });
 
+async function signToken (ctx:koa.ParameterizedContext<ICustomState, {}>, next: ()=>Promise<any>) {
+  const {user} = ctx.state;
+  // sign token
+  const token = jwt.sign({
+    _id: user._id,
+    fullName: user.name,
+    email: user.email,
+    groups: user.groups,
+  }, 
+  conf.secret.jwt.key,
+  {expiresIn:'1h'})
+  // set token to domain cookie
+  ctx.cookies.set(
+  'token',
+  token,
+  {
+    domain:conf.domainAddress,
+    maxAge: 1*3600*1000,
+    overwrite: true,
+  });
+  ctx.body.token = token;
+  await next();
+}
 
 router.get('/', async (ctx:koa.ParameterizedContext<any, {}>)=> {
   ctx.body={message:'OK'};
 })
 
-router.get('/api/user/current', async (ctx:koa.ParameterizedContext<ICustomState, {}>)=> {
+router.get('/api/user/current', async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
   const user = ctx.state.user;
+  ctx.body = {message:'OK'};
   if (user) {
     const now = Math.floor(Date.now() / 1000);
     const eta = ctx.state.user.exp - now;
+    ctx.body.eta = eta;
     if (eta >= 0 && eta <= 360) {
-      // sign a new jwt
-      const token = jwt.sign({
-        id: user._id,
-        fullName: user.name,
-        email: user.email,
-        groups: user.groups,
-      }, 
-      conf.secret.jwt.key,
-      {expiresIn:'1h'})
-      // set token to domain cookie
-      ctx.cookies.set(
-      'token',
-      token,
-      {
-        domain:conf.domainAddress,
-        maxAge: 1*3600*1000,
-        overwrite: true,
-      });
+      await next();
     }
   }
-  ctx.body = {user: ctx.state}
-})
+},
+signToken);
 
 function verifyUserForm (form) :boolean {
     const {
@@ -106,6 +114,41 @@ router.post('/api/user', async (ctx:koa.ParameterizedContext<any, {}>)=> {
 
 })
 
+router.put('/api/user/:id', async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
+  const {id} = ctx.params;
+  if (ctx.state.user.groups.indexOf('administrators') >= 0) {
+    // administrators, can do any change
+    await next();
+  } else if (ctx.state.user._id === id) {
+    // it's user himself
+    // can change name and password
+    const newBody:any = {}
+    const {name, password} = ctx.request.body;
+    if (name) {
+      newBody.name = name;
+    }
+    if (password) {
+      newBody.password = password;
+    }
+    ctx.request.body = newBody;
+    await next();
+  } else {
+    ctx.throw(401, `not a admin`);
+  }
+},
+async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
+  // change information
+  // console.warn(ctx.request.body);
+  const {id} = ctx.params;
+  await User.updateOne({_id:id}, ctx.request.body).exec();
+  ctx.body = {message:'OK', changedKeys:Object.keys(ctx.request.body)};
+  if (id === ctx.state.user._id) {
+    // user changed information, resign token
+    await next();
+  }
+},
+signToken);
+
 router.post('/api/session', async (ctx:koa.ParameterizedContext<any, {}>)=> {
   const {
     email,
@@ -120,16 +163,17 @@ router.post('/api/session', async (ctx:koa.ParameterizedContext<any, {}>)=> {
   const {passwordHash, passwordSalt} = user;
   const passwordHash2 = crypto.createHmac('sha256', conf.secret.HMAC_KEY).update(password+passwordSalt).digest().toString('base64');
   if(passwordHash === passwordHash2) {
+    user.save();
+
     const token = jwt.sign({
-      id:user._id,
+      _id:user._id,
       fullName: user.name,
       email: user.email,
       groups: user.groups,
     }, 
     conf.secret.jwt.key,
     {expiresIn:'1h'})
-    user.save();
-
+    
     // set token to domain cookie
     ctx.cookies.set(
     'token',
@@ -139,15 +183,10 @@ router.post('/api/session', async (ctx:koa.ParameterizedContext<any, {}>)=> {
       maxAge: 1*3600*1000,
     });
 
-    ctx.body = {message: `welcome ${user.name}`, id:user._id, token, name:user.name, email:user.email, groups:user.groups};
+    ctx.body = {message: `welcome ${user.name}`, _id:user._id, token, name:user.name, email:user.email, groups:user.groups};
   } else {
     ctx.throw(404, 'username of password is incorrect');
   }
-      
-  // var hash=crypto.createHmac('sha1', app_secret).update(args).digest().toString('base64');
-
-
-  // ctx.response.body = {message:'OK'};
 });
 
 router.delete('/api/session',  async (ctx:koa.ParameterizedContext<any, {}>)=> {
@@ -157,4 +196,4 @@ router.delete('/api/session',  async (ctx:koa.ParameterizedContext<any, {}>)=> {
 
 app.use(router.routes());
 app.listen(8000, '0.0.0.0');
-log4js.getLogger().info('start listening at 8000')
+log4js.getLogger().info('start listening at 8000');

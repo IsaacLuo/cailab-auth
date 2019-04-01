@@ -26,4 +26,5 @@ export interface IUser extends IUserEssential {
 
 export interface ICustomState {
   user?: ITokenContent,
+  data?: any,
 }
