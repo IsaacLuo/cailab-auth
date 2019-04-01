@@ -135,8 +135,7 @@ router.put('/api/user/:id', async (ctx:koa.ParameterizedContext<ICustomState, {}
   } else {
     ctx.throw(401, `not a admin`);
   }
-},
-async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
+}, async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
   // change information
   // console.warn(ctx.request.body);
   const {id} = ctx.params;
@@ -146,8 +145,7 @@ async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
     // user changed information, resign token
     await next();
   }
-},
-signToken);
+}, signToken);
 
 router.post('/api/session', async (ctx:koa.ParameterizedContext<any, {}>)=> {
   const {
@@ -173,7 +171,7 @@ router.post('/api/session', async (ctx:koa.ParameterizedContext<any, {}>)=> {
     }, 
     conf.secret.jwt.key,
     {expiresIn:'1h'})
-    
+
     // set token to domain cookie
     ctx.cookies.set(
     'token',
