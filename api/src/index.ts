@@ -8,10 +8,12 @@ import conf from '../conf';
 import crypto from 'crypto';
 import {User} from './models';
 import jwt from 'jsonwebtoken';
+import cors from 'koa-cors';
 
 const app = new koa();
 const router = new Router();
 
+app.use(cors({credentials: true}));
 app.use(koaBody());
 middleware(app);
 
