@@ -58,21 +58,26 @@ export default function middleware (app:koa) {
 
   // mongodb
   app.use( async (ctx:koa.ParameterizedContext<any, {}>, next: ()=>Promise<any>)=> {
-    const mongooseState = mongoose.connection.readyState;
-    switch (mongooseState) {
-      case 3:
-      case 0:
-      await mongoose.connect(
-        conf.secret.mongoDB.url,
-        {
-          useNewUrlParser: true,
-          user: conf.secret.mongoDB.username,
-          pass: conf.secret.mongoDB.password, 
-        }
-      );
-      break;
+    try {
+      const mongooseState = mongoose.connection.readyState;
+      switch (mongooseState) {
+        case 3:
+        case 0:
+        await mongoose.connect(
+          conf.secret.mongoDB.url,
+          {
+            useNewUrlParser: true,
+            user: conf.secret.mongoDB.username,
+            pass: conf.secret.mongoDB.password, 
+          }
+        );
+        break;
+      }
+    } catch(error) {
+      ctx.throw(500,'db connection error');
     }
     await next();
+    
   });
 
   // always json type
@@ -87,7 +92,9 @@ export default function middleware (app:koa) {
     cookie: 'token',
   }).unless({
     path: [
-      '/api/session'
+      '/api/session',
+      '/api/user',
+      '/',
     ]
   }))
 

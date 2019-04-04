@@ -24,6 +24,7 @@ app.use(async (ctx:koa.ParameterizedContext<any, {}>, next:()=>Promise<any>)=> {
 
 async function signToken (ctx:koa.ParameterizedContext<ICustomState, {}>, next: ()=>Promise<any>) {
   const {user} = ctx.state;
+  log4js.getLogger().info('signed new token');
   // sign token
   const token = jwt.sign({
     _id: user._id,
@@ -52,7 +53,7 @@ router.get('/', async (ctx:koa.ParameterizedContext<any, {}>)=> {
 
 router.get('/api/user/current', async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
   const user = ctx.state.user;
-  ctx.body = {message:'OK'};
+  ctx.body = {message:'OK', user,};
   if (user) {
     const now = Math.floor(Date.now() / 1000);
     const eta = ctx.state.user.exp - now;
@@ -141,10 +142,15 @@ router.put('/api/user/:id', async (ctx:koa.ParameterizedContext<ICustomState, {}
   // change information
   // console.warn(ctx.request.body);
   const {id} = ctx.params;
+  ctx.request.body.updatedAt = new Date();
   await User.updateOne({_id:id}, ctx.request.body).exec();
+  const updatedUser = await User.findOne({_id:id}).exec();
   ctx.body = {message:'OK', changedKeys:Object.keys(ctx.request.body)};
   if (id === ctx.state.user._id) {
     // user changed information, resign token
+    ctx.state.user.name = updatedUser.name;
+    ctx.state.user.email = updatedUser.email;
+    ctx.state.user.groups = updatedUser.groups;
     await next();
   }
 }, signToken);

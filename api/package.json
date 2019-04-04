@@ -1,10 +1,12 @@
 {
+  "name": "cailab-auth-api",
+  "version": "0.1.0",
+  "private": true,
   "dependencies": {
     "@types/koa": "^2.0.48",
     "@types/koa-router": "^7.0.40",
     "@types/mongoose": "^5.3.24",
     "cross-env": "^5.2.0",
-    "crypto": "^1.0.1",
     "jsonwebtoken": "^8.5.1",
     "koa": "^2.7.0",
     "koa-body": "^4.1.0",
