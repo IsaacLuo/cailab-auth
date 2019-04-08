@@ -1,12 +1,5 @@
 <template>
   <div class="login">
-    <el-dialog
-      title="sign up to Cailab"
-      :visible="true"
-      width="50%"
-      :show-close="false"
-      class="dialog"
-    >
       <span slot="title" class="dialog-title">
         <img alt="logo" src="../assets/logo.png">
         <h1>sign up to cailab</h1>
@@ -38,7 +31,6 @@
         <el-button type="primary" @click="onSubmit">submit</el-button>
         <el-button @click="onCancel">Cancel</el-button>
       </span>
-    </el-dialog>
   </div>
 </template>
 
@@ -52,6 +44,10 @@
   background-color: #ff7777;
   color: #fff;
   padding:5px;
+}
+.login
+{
+  padding: 25px;
 }
 </style>
 

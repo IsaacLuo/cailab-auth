@@ -1,12 +1,5 @@
 <template>
   <div class="login">
-    <el-dialog
-      title="Login to Cailab"
-      :visible="true"
-      width="50%"
-      :show-close="false"
-      class="dialog"
-    >
       <span slot="title" class="dialog-title">
         <img alt="logo" src="../assets/logo.png">
         <h1>login to cailab</h1>
@@ -29,8 +22,7 @@
         
         <el-button type="primary" @click="onSubmit">submit</el-button>
         <el-button @click="onCancel">Cancel</el-button>
-      </span>
-    </el-dialog>
+      </span> 
   </div>
 </template>
 
@@ -38,6 +30,10 @@
 .alignRight 
 {
   text-align: right;
+}
+.login
+{
+  padding: 25px;
 }
 </style>
 
@@ -76,7 +72,9 @@ export default class Login extends Vue {
   public async onSubmit(event: MouseEvent) {
     try {
       const res = await axios.post(conf.serverURL + '/api/session', this.form, {withCredentials: true});
-      window.location.href = this.$route.query.from as string;
+      (window as any).user = res.data;
+      window.close();
+      // window.location.href = this.$route.query.from as string;
 
     } catch (err) {
       this.message = err.message;
