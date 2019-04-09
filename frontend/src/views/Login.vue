@@ -73,9 +73,10 @@ export default class Login extends Vue {
     try {
       const res = await axios.post(conf.serverURL + '/api/session', this.form, {withCredentials: true});
       (window as any).user = res.data;
+      if (window.opener) {
+        window.opener.postMessage({event:'closed', success:true}, '*');
+      }
       window.close();
-      // window.location.href = this.$route.query.from as string;
-
     } catch (err) {
       this.message = err.message;
       console.error(err.message);
