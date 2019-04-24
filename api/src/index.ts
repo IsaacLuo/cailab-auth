@@ -10,6 +10,9 @@ import {User} from './models';
 import jwt from 'jsonwebtoken';
 import cors from 'koa-cors';
 
+const DEFAULT_EXPIRE_TIME = '24h';
+const DEFAULT_COOKIE_EXPIRE_TIME = 1000*3600*24;
+
 const app = new koa();
 const router = new Router();
 
@@ -33,14 +36,14 @@ async function signToken (ctx:koa.ParameterizedContext<ICustomState, {}>, next: 
     groups: user.groups,
   }, 
   conf.secret.jwt.key,
-  {expiresIn:'1h'})
+  {expiresIn:DEFAULT_EXPIRE_TIME})
   // set token to domain cookie
   ctx.cookies.set(
   'token',
   token,
   {
     domain:conf.domainAddress,
-    maxAge: 1*3600*1000,
+    maxAge: DEFAULT_COOKIE_EXPIRE_TIME,
     overwrite: true,
   });
   ctx.body.token = token;
@@ -178,7 +181,7 @@ router.post('/api/session', async (ctx:koa.ParameterizedContext<any, {}>)=> {
       groups: user.groups,
     }, 
     conf.secret.jwt.key,
-    {expiresIn:'1h'})
+    {expiresIn:DEFAULT_EXPIRE_TIME})
 
     // set token to domain cookie
     ctx.cookies.set(
@@ -186,7 +189,7 @@ router.post('/api/session', async (ctx:koa.ParameterizedContext<any, {}>)=> {
     token,
     {
       domain:conf.domainAddress,
-      maxAge: 1*3600*1000,
+      maxAge: DEFAULT_COOKIE_EXPIRE_TIME,
     });
 
     ctx.body = {message: `welcome ${user.name}`, _id:user._id, token, name:user.name, email:user.email, groups:user.groups};
