@@ -95,6 +95,7 @@ export default function middleware (app:koa) {
       '/api/session',
       '/api/user',
       '/',
+      /^\/api\/emailVerification/
     ]
   }))
 

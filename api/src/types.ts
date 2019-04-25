@@ -27,4 +27,13 @@ export interface IUser extends IUserEssential {
 export interface ICustomState {
   user?: ITokenContent,
   data?: any,
+  forceRefreshToken?: boolean,
+}
+
+export interface IEmailVerification {
+  _id:any,
+  email: string,
+  token: string,
+  createdAt: Date,
+  validateUntil: Date,
 }

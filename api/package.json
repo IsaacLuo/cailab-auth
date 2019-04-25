@@ -6,6 +6,7 @@
     "@types/koa": "^2.0.48",
     "@types/koa-router": "^7.0.40",
     "@types/mongoose": "^5.3.24",
+    "@types/nodemailer": "^4.6.7",
     "cross-env": "^5.2.0",
     "jsonwebtoken": "^8.5.1",
     "koa": "^2.7.0",
@@ -14,7 +15,9 @@
     "koa-jwt": "^3.5.1",
     "koa-router": "^7.4.0",
     "log4js": "^4.1.0",
-    "mongoose": "^5.4.20"
+    "mongoose": "^5.4.20",
+    "nodemailer": "^6.1.1",
+    "uuid": "^3.3.2"
   },
   "scripts": {
     "start": "ts-node src/index.ts",

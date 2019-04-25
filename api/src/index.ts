@@ -1,4 +1,4 @@
-import { ICustomState } from './types';
+import { ICustomState, IEmailVerification } from './types';
 import koa from 'koa';
 import koaBody from 'koa-body';
 import middleware from './middleware'
@@ -6,9 +6,11 @@ import Router from 'koa-router';
 import log4js from 'log4js';
 import conf from '../conf';
 import crypto from 'crypto';
-import {User} from './models';
+import { User, EmailVerification } from './models';
 import jwt from 'jsonwebtoken';
 import cors from 'koa-cors';
+import nodemailer from 'nodemailer';
+import uuid from 'uuid';
 
 const DEFAULT_EXPIRE_TIME = '24h';
 const DEFAULT_COOKIE_EXPIRE_TIME = 1000*3600*24;
@@ -54,18 +56,21 @@ router.get('/', async (ctx:koa.ParameterizedContext<any, {}>)=> {
   ctx.body={message:'OK'};
 })
 
-router.get('/api/user/current', async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
+const getCurrentUser =  async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
   const user = ctx.state.user;
   ctx.body = {message:'OK', user,};
   if (user) {
     const now = Math.floor(Date.now() / 1000);
     const eta = ctx.state.user.exp - now;
     ctx.body.eta = eta;
-    if (eta >= 0 && eta <= 360) {
+    if (eta >= 0 && eta <= 360 || ctx.state.forceRefreshToken) {
       await next();
     }
   }
-},
+};
+
+router.get('/api/user/current',
+getCurrentUser,
 signToken);
 
 function verifyUserForm (form) :boolean {
@@ -83,8 +88,46 @@ function verifyUserForm (form) :boolean {
 
     return true;
 }
+/**
+ * send an email for email address verification
+ * @param ctx.state.email email for verification 
+ */
+const sendVerificationEmail = async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
+  try {
+  // generate a token for email verification
+  const {email} = ctx.state;
+  const token = uuid.v4();
+  const now = new Date();
+  const validateUntil = new Date(Date.now()+3600*1000); // 1 hour
+  await EmailVerification.create({
+    email,
+    token,
+    createdAt: now,
+    validateUntil,
+  })
+  // send email to the address
+  const transporter = nodemailer.createTransport(conf.secret.mail.server);
+  const info = await transporter.sendMail({
+    from: conf.secret.mail.address,
+    to: ctx.state.email,
+    subject: conf.mail.subject,
+    html: conf.mail.htmlTemplate
+          .replace(/{%verificationLink%}/g, `${conf.serverAddress}/emailVerification/${token}`)
+          .replace(/{%validateUntil%}/g,validateUntil.toLocaleString()),
+  });
+  console.log("Message sent: %s", info.messageId);
+  } catch (error) {
+    ctx.throw('failed sending verfication email', 500);
+  }
+  await next();
+}
 
-router.post('/api/user', async (ctx:koa.ParameterizedContext<any, {}>)=> {
+const cleanVericicationEmail = async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
+  const response = await EmailVerification.deleteMany({validateUntil: {$lt: new Date()}}).exec();
+  // console.debug(response);
+}
+
+router.post('/api/user', async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
   const {
     name,
     email,
@@ -107,7 +150,7 @@ router.post('/api/user', async (ctx:koa.ParameterizedContext<any, {}>)=> {
     const user = new User({
       email,
       name,
-      groups: [],
+      groups: ['emailNotVerified'],
       createdAt: now,
       updatedAt: now,
       authType: 'local',
@@ -115,10 +158,62 @@ router.post('/api/user', async (ctx:koa.ParameterizedContext<any, {}>)=> {
       passwordSalt,
     });
     await user.save();
-    ctx.response.body  = {_id: user._id};
+    ctx.state.email = email;
+    ctx.state.forceRefreshToken = true;
+    ctx.state.user = {_id: user._id, email: user.email, name: user.name, groups: user.groups, iat: Math.floor(Date.now()/1000), exp: Math.floor(Date.now()/1000)+5};
+    await next();
+  }
+},
+getCurrentUser,
+signToken,
+sendVerificationEmail,
+cleanVericicationEmail,
+);
+
+router.post('/api/user/emailVerification', async (ctx:koa.ParameterizedContext<any, {}>, next)=>{
+  const user = ctx.state.user;
+  if(user.groups.indexOf('emailNotVerified')>=0) {
+    ctx.state.email = user.email;
+    await next();
+    ctx.response.body = {_id: user._id};
+  } else {
+    ctx.throw('email already verified',405);
+  }
+}, sendVerificationEmail, cleanVericicationEmail);
+
+/**
+ * verify email by sending token in email
+ */
+router.get('/api/emailVerification/:token', async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
+  const {token} = ctx.params;
+  const emailVerification = await EmailVerification.findOne({token}).exec();
+  if(!emailVerification) {
+    ctx.throw(404);
+  }
+  const now = new Date();
+  if (now > emailVerification.validateUntil) {
+    ctx.throw(404);
+  }
+  const user = await User.findOne({email: emailVerification.email}).exec();
+  if(!user) {
+    ctx.throw(404);    
   }
 
-})
+  const groupIdx = user.groups.indexOf('emailNotVerified');
+  if(groupIdx === -1) {
+    ctx.throw('email already verified', 410);
+  }
+
+  user.groups.splice(groupIdx,1);
+  // user.groups[groupIdx] = 'guest';
+  await user.save();
+  ctx.state.forceRefreshToken = true;
+  ctx.state.user = {_id: user._id, email: user.email, name: user.name, groups: user.groups, iat: Math.floor(Date.now()/1000), exp: Math.floor(Date.now()/1000)+5};
+  await next();
+}, 
+getCurrentUser,
+signToken,
+cleanVericicationEmail);
 
 router.put('/api/user/:id', async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
   const {id} = ctx.params;

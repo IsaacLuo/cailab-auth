@@ -13,7 +13,7 @@
             <el-input type="password" v-model="form.password"></el-input>
           </el-form-item>
           <el-form-item class="alignRight">
-            <router-link :to="`/signup?from=${this.$route.query.from}`">not a user? sign up here</router-link>
+            <router-link :to="this.$route.query.from ? `/signup?from=${this.$route.query.from}`: '/signup'">not a user? sign up here</router-link>
           </el-form-item>
         </el-form>
         <div>{{this.message}}</div>
@@ -74,7 +74,7 @@ export default class Login extends Vue {
       const res = await axios.post(conf.serverURL + '/api/session', this.form, {withCredentials: true});
       (window as any).user = res.data;
       if (window.opener) {
-        window.opener.postMessage({event:'closed', success:true}, '*');
+        window.opener.postMessage({event: 'closed', success: true}, '*');
       }
       window.close();
     } catch (err) {

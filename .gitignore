@@ -1,2 +1,4 @@
 /api/secret.ts
 /api/.vscode
+/.vscode/sftp.json
+/api/logs

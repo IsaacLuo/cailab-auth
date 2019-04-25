@@ -2,6 +2,7 @@ import Vue from 'vue';
 import Router from 'vue-router';
 import Login from '@/views/Login.vue';
 import Signup from '@/views/Signup.vue';
+import EmailVerification from '@/views/EmailVerification';
 
 Vue.use(Router);
 
@@ -9,6 +10,11 @@ export default new Router({
   mode: 'history',
   base: process.env.BASE_URL,
   routes: [
+    {
+      path: '/',
+      name: 'home',
+      component: Login,
+    },
     {
       path: '/login',
       name: 'home',
@@ -18,6 +24,11 @@ export default new Router({
       path: '/signup',
       name: 'home',
       component: Signup,
+    },
+        {
+      path: '/emailVerification/:token',
+      name: 'home',
+      component: EmailVerification,
     },
     // {
     //   path: '/about',
