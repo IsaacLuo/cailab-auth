@@ -1,56 +1,52 @@
 <template>
   <div class="login">
-      <span slot="title" class="dialog-title">
-        <img alt="logo" src="../assets/logo.png">
-        <h1>sign up to cailab</h1>
-      </span>
-      <span>
-        <el-form ref="form" :model="form" label-width="180px">
-          <el-form-item label="email">
-            <el-input v-model="form.email"></el-input>
-          </el-form-item>
-          <el-form-item label="password">
-            <el-input type="password" v-model="form.password"></el-input>
-          </el-form-item>
-          <el-form-item label="password confirmation">
-            <el-input type="password" v-model="form.passwordConfirmation"></el-input>
-          </el-form-item>
-          <el-form-item label="full name">
-            <el-input v-model="form.name"></el-input>
-          </el-form-item>
-          <el-form-item class="alignRight">
-            <router-link :to="this.$route.query.from ? `/login?from=${this.$route.query.from}` : '/login'">already have an account? login</router-link>
-          </el-form-item>
-        </el-form>
-        <div class='emailHint' v-if="this.emailHint">
-          A verification email has been send to your address, please the check the email, if no mail arrives in 3 minuts, please try to
-          <el-button @click="onResendEmail">resend</el-button>
-        </div>
-        <div class="warning" v-if="this.message !== '' ">
-          {{this.message}}
-          </div>
-      </span>
-      <span slot="footer" class="dialog-footer">
-        
-        <el-button type="primary" @click="onSubmit">submit</el-button>
-        <el-button @click="onCancel">Cancel</el-button>
-      </span>
+    <span slot="title" class="dialog-title">
+      <img alt="logo" src="../assets/logo.png">
+      <h1>sign up to cailab</h1>
+    </span>
+    <span>
+      <el-form ref="form" :model="form" label-width="180px">
+        <el-form-item label="email">
+          <el-input v-model="form.email"></el-input>
+        </el-form-item>
+        <el-form-item label="password">
+          <el-input type="password" v-model="form.password"></el-input>
+        </el-form-item>
+        <el-form-item label="password confirmation">
+          <el-input type="password" v-model="form.passwordConfirmation"></el-input>
+        </el-form-item>
+        <el-form-item label="full name">
+          <el-input v-model="form.name"></el-input>
+        </el-form-item>
+        <el-form-item class="alignRight">
+          <router-link
+            :to="this.$route.query.from ? `/login?from=${this.$route.query.from}` : '/login'"
+          >already have an account? login</router-link>
+        </el-form-item>
+      </el-form>
+      <div class="emailHint" v-if="this.emailHint">
+        A verification email has been send to your address, please the check the email, if no mail arrives in 3 minuts, please try to
+        <el-button @click="onResendEmail">resend</el-button>
+      </div>
+      <div class="warning" v-if="this.message !== '' ">{{this.message}}</div>
+    </span>
+    <span slot="footer" class="dialog-footer">
+      <el-button type="primary" @click="onSubmit">submit</el-button>
+      <el-button @click="onCancel">Cancel</el-button>
+    </span>
   </div>
 </template>
 
 <style scoped>
-.alignRight 
-{
+.alignRight {
   text-align: right;
 }
-.warning
-{
+.warning {
   background-color: #ff7777;
   color: #fff;
-  padding:5px;
+  padding: 5px;
 }
-.login
-{
+.login {
   padding: 25px;
 }
 </style>
@@ -69,8 +65,7 @@ interface IForm {
 }
 
 @Component({
-  components: {
-  },
+  components: {},
 })
 export default class Signup extends Vue {
   private form!: IForm;
@@ -79,7 +74,7 @@ export default class Signup extends Vue {
 
   public data() {
     return {
-      form : {
+      form: {
         email: '',
         password: '',
         passwordConfirmation: '',
@@ -96,7 +91,7 @@ export default class Signup extends Vue {
   }
 
   public async onSubmit(event: MouseEvent) {
-    const {email, password, passwordConfirmation, name} = this.form;
+    const { email, password, passwordConfirmation, name } = this.form;
     this.emailHint = false;
     try {
       if (name.length < 2) {
@@ -108,14 +103,22 @@ export default class Signup extends Vue {
       if (!/^\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$/.test(email)) {
         throw new Error('email is invalid');
       }
-      if (!(password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /[0-9]/.test(password))) {
+      if (
+        !(
+          password.length >= 8 &&
+          /[A-Z]/.test(password) &&
+          /[a-z]/.test(password) &&
+          /[0-9]/.test(password)
+        )
+      ) {
         throw new Error('password should match complicity requirement');
       }
-      const res = await axios.post(conf.serverURL + '/api/user', this.form, {withCredentials: true});
+      const res = await axios.post(conf.serverURL + '/api/user', this.form, {
+        withCredentials: true,
+      });
       // window.location.href = this.$route.query.from as string;
 
       this.emailHint = true;
-
     } catch (err) {
       console.log(err);
       if (err.response && err.response.status === 409) {
@@ -128,7 +131,11 @@ export default class Signup extends Vue {
 
   public async onResendEmail(event: MouseEvent) {
     try {
-      const res = await axios.post(conf.serverURL + '/api/user/emailVerification', this.form, {withCredentials: true});
+      const res = await axios.post(
+        conf.serverURL + '/api/user/emailVerification',
+        this.form,
+        { withCredentials: true },
+      );
     } catch (error) {
       this.message = error.message;
     }

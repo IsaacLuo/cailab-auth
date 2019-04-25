@@ -8,12 +8,10 @@
 </template>
 
 <style scoped>
-.alignRight 
-{
+.alignRight {
   text-align: right;
 }
-.login
-{
+.login {
   padding: 25px;
 }
 </style>
@@ -25,12 +23,11 @@ import axios from 'axios';
 import conf from '@/../conf';
 
 @Component({
-  components: {
-  },
+  components: {},
 })
 export default class EmailVerification extends Vue {
-  private step!:string;
-  private message!:string;
+  private step!: string;
+  private message!: string;
 
   public data() {
     return {
@@ -44,13 +41,16 @@ export default class EmailVerification extends Vue {
     this.onVerify(token);
   }
 
-  public async onVerify(token:string) {
+  public async onVerify(token: string) {
     try {
-      const res = await axios.get(conf.serverURL + `/api/emailVerification/${token}`, {withCredentials: true});
-      this.step = 'finish'
-      this.message = 'email verified'
+      const res = await axios.get(
+        conf.serverURL + `/api/emailVerification/${token}`,
+        { withCredentials: true },
+      );
+      this.step = 'finish';
+      this.message = 'email verified';
     } catch (err) {
-      this.step = 'error'
+      this.step = 'error';
       this.message = err.response.data.message;
       console.error(err.message);
     }
