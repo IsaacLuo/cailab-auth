@@ -72,11 +72,26 @@ export default class Login extends Vue {
   public async onSubmit(event: MouseEvent) {
     try {
       const res = await axios.post(conf.serverURL + '/api/session', this.form, {withCredentials: true});
-      (window as any).user = res.data;
-      if (window.opener) {
-        window.opener.postMessage({event: 'closed', success: true}, '*');
+      const user = res.data;
+      (window as any).user = user;
+      if (user.groups.indexOf('emailNotVerified')>=0) {
+        try {
+          const res = await axios.post(
+            conf.serverURL + '/api/user/emailVerification',
+            this.form,
+            { withCredentials: true },
+          );
+          this.message = 'You have not verify the email address. An email is sent to your email box';
+        } catch (error) {
+          this.message = error.message;
+        }
       }
-      window.close();
+      else {
+        if (window.opener) {
+          window.opener.postMessage({event: 'closed', success: true}, '*');
+        }
+        window.close();
+      }
     } catch (err) {
       this.message = err.message;
       console.error(err.message);

@@ -1,7 +1,7 @@
 import secret from './secret'
 
 export default {
-  serverAddress: 'http://local.cailab.org:8000',
+  serverAddress: 'https://auth.cailab.org',
   domainAddress: 'cailab.org',
   secret,
   mail: {
