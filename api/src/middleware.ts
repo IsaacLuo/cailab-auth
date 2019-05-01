@@ -90,6 +90,23 @@ export default function middleware (app:koa) {
   app.use(koaJwt({
     secret: conf.secret.jwt.key,
     cookie: 'token',
+    getToken: (ctx) => { 
+      const auth = ctx.headers['authorization'];
+      if(auth) {
+        const [first, second] = auth.split(' ');
+        if (first === 'Bearer') {
+          return second;
+        }
+      }
+      if(ctx.headers['token']) {
+        return ctx.headers['token']
+      }
+      const urlToken = ctx.URL.searchParams.get('token');
+      if(urlToken) {
+        return urlToken;
+      }
+      return null;
+    }
   }).unless({
     path: [
       '/api/session',
