@@ -58,7 +58,7 @@ async function signToken (ctx:koa.ParameterizedContext<ICustomState, {}>, next: 
 }
 
 router.get('/', async (ctx:koa.ParameterizedContext<any, {}>)=> {
-  ctx.body={message:'OK'};
+  ctx.body={message:'OK', env: process.env.NODE_ENV, sv: conf.secret.mongoDB.url};
 })
 
 const getCurrentUser =  async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
@@ -94,7 +94,7 @@ function verifyUserForm (form) :boolean {
     return true;
 }
 
-router.get('/api/user/:id/protrait/:size',
+router.get('/api/user/:id/portrait/:size/:filename',
   async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
     let {id} = ctx.params;
     if (id === 'current') {
@@ -110,7 +110,7 @@ router.get('/api/user/:id/protrait/:size',
   }
 );
 
-router.put('/api/user/:id/protrait',
+router.put('/api/user/:id/portrait',
   async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
     if (ctx.state.user._id === ctx.params.id || ctx.state.user.groups.indexOf('administrators') >= 0) {
       await next();

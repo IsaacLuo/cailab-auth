@@ -76,7 +76,7 @@ export default class Login extends Vue {
       (window as any).user = user;
       if (user.groups.indexOf('emailNotVerified')>=0) {
         try {
-          const res = await axios.post(
+          const res2 = await axios.post(
             conf.serverURL + '/api/user/emailVerification',
             this.form,
             { withCredentials: true },

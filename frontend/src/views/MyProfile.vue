@@ -48,35 +48,39 @@ import conf from '@/../conf';
   },
 })
 export default class MyProfile extends Vue {
-  private form!: {
+  private user!: {
+    _id: string,
     email: string,
-    password: string,
+    fullName: string,
+    groups: string[],
   };
+  private photo!: any;
   private message = '';
 
   public data() {
     return {
-      form : {
+      user: {
+        _id: '',
         email: '',
-        password: '',
+        fullName: '',
+        groups: [],
       },
       message: '',
     };
   }
 
   public async created() {
-    // try {
-    //   const res = await axios.get(conf.serverURL + '/api/user/current', {withCredentials: true});
-    //   const user = res.data;
-    //   console.log(user);
-    // } catch (err) {
-    //   this.message = err.message;
-    //   console.error(err.message);
-    // }
+    try {
+      const res = await axios.get(conf.serverURL + '/api/user/current', {withCredentials: true});
+      const user = res.data;
+      this.user = user;
+      const res2 = await axios.get(conf.serverURL + '/api/user/current/portrait/l/portrait.jpg', {withCredentials: true});
+      this.photo = res.data;
+    } catch (err) {
+      this.message = err.message;
+      console.error(err.message);
+    }
   }
-
-  public async onSubmit(event: MouseEvent) {
-
-  }
+  
 }
 </script>

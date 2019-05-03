@@ -23,17 +23,17 @@ export default new Router({
     },
     {
       path: '/login',
-      name: 'home',
+      name: 'Login',
       component: Login,
     },
     {
       path: '/signup',
-      name: 'home',
+      name: 'Signup',
       component: Signup,
     },
         {
       path: '/emailVerification/:token',
-      name: 'home',
+      name: 'EmailVerification',
       component: EmailVerification,
     },
     // {
