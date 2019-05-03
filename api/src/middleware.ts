@@ -80,12 +80,12 @@ export default function middleware (app:koa) {
     
   });
 
-  // always json type
-  app.use( async (ctx:koa.ParameterizedContext<any, {}>, next: ()=>Promise<any>)=> {
-    ctx.type = 'json';
-    ctx.body = {};
-    await next();
-  });
+  // // always json type
+  // app.use( async (ctx:koa.ParameterizedContext<any, {}>, next: ()=>Promise<any>)=> {
+  //   ctx.type = 'json';
+  //   ctx.body = {};
+  //   await next();
+  // });
 
   app.use(koaJwt({
     secret: conf.secret.jwt.key,

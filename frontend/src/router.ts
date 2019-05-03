@@ -3,6 +3,7 @@ import Router from 'vue-router';
 import Login from '@/views/Login.vue';
 import Signup from '@/views/Signup.vue';
 import EmailVerification from '@/views/EmailVerification.vue';
+import MyProfile from '@/views/MyProfile.vue';
 
 Vue.use(Router);
 
@@ -14,6 +15,11 @@ export default new Router({
       path: '/',
       name: 'home',
       component: Login,
+    },
+    {
+      path: '/myProfile',
+      name: 'myProfile',
+      component: MyProfile,
     },
     {
       path: '/login',

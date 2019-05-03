@@ -6,11 +6,16 @@ import Router from 'koa-router';
 import log4js from 'log4js';
 import conf from '../conf';
 import crypto from 'crypto';
-import { User, EmailVerification } from './models';
+import { User, EmailVerification, Portrait } from './models';
 import jwt from 'jsonwebtoken';
 import cors from 'koa-cors';
 import nodemailer from 'nodemailer';
 import uuid from 'uuid';
+import sharp from 'sharp';
+import fs from 'fs';
+import util from 'util';
+
+const readFile = util.promisify(fs.readFile);
 
 const DEFAULT_EXPIRE_TIME = '24h';
 const DEFAULT_COOKIE_EXPIRE_TIME = 1000*3600*24;
@@ -19,7 +24,7 @@ const app = new koa();
 const router = new Router();
 
 app.use(cors({credentials: true}));
-app.use(koaBody());
+app.use(koaBody({multipart:true}));
 middleware(app);
 
 app.use(async (ctx:koa.ParameterizedContext<any, {}>, next:()=>Promise<any>)=> {
@@ -88,6 +93,69 @@ function verifyUserForm (form) :boolean {
 
     return true;
 }
+
+router.get('/api/user/:id/protrait/:size',
+  async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
+    let {id} = ctx.params;
+    if (id === 'current') {
+      id = ctx.state.user._id;
+    }
+    const {size} = ctx.params;
+    const portraitGroup = await Portrait.findOne({user:id}).exec();
+    if(!portraitGroup || !portraitGroup[size]) {
+      ctx.throw(404);
+    }
+    ctx.type = 'image/jpeg'
+    ctx.body = portraitGroup[size];
+  }
+);
+
+router.put('/api/user/:id/protrait',
+  async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
+    if (ctx.state.user._id === ctx.params.id || ctx.state.user.groups.indexOf('administrators') >= 0) {
+      await next();
+    } else {
+      ctx.throw(401);
+    }
+  },
+  async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
+    const {id} = ctx.params;
+    const user = User.findById(id).exec();
+    if (!user) {
+      ctx.throw(404);
+    }
+
+    const {file} = ctx.request.files;
+    if (!file || !/^image/.test(file.type)) {
+      ctx.throw(400);
+    }
+
+    const inputBuffer = await readFile(file.path);
+
+    const sizes = [32, 64, 128, 256, 512];
+
+    const resizedImage = await Promise.all(sizes.map(
+      async (size) => await sharp(inputBuffer).resize(size, size).jpeg().toBuffer()
+      ));
+    const result = await Portrait.updateOne(
+      {_id:id},
+      {
+        _id:id,
+        user:id,
+        xs: resizedImage[0],
+        s: resizedImage[1],
+        m: resizedImage[2],
+        l: resizedImage[3],
+        xl: resizedImage[4],
+      },
+      {
+        upsert:true,
+      }
+      )
+    ctx.body = {message:'OK', result};
+  }
+);
+
 /**
  * send an email for email address verification
  * @param ctx.state.email email for verification 
@@ -127,6 +195,9 @@ const cleanVericicationEmail = async (ctx:koa.ParameterizedContext<any, {}>, nex
   // console.debug(response);
 }
 
+/**
+ * register new user
+ */
 router.post('/api/user', async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
   const {
     name,
@@ -170,6 +241,9 @@ sendVerificationEmail,
 cleanVericicationEmail,
 );
 
+/**
+ * request new email verification
+ */
 router.post('/api/user/emailVerification', async (ctx:koa.ParameterizedContext<any, {}>, next)=>{
   const user = ctx.state.user;
   if(user.groups.indexOf('emailNotVerified')>=0) {
@@ -215,6 +289,9 @@ getCurrentUser,
 signToken,
 cleanVericicationEmail);
 
+/** 
+ * modify user 
+ */
 router.put('/api/user/:id', async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
   const {id} = ctx.params;
   if (ctx.state.user.groups.indexOf('administrators') >= 0) {
@@ -253,6 +330,9 @@ router.put('/api/user/:id', async (ctx:koa.ParameterizedContext<ICustomState, {}
   }
 }, signToken);
 
+/**
+ * login
+ */
 router.post('/api/session', async (ctx:koa.ParameterizedContext<any, {}>)=> {
   const {
     email,
@@ -293,6 +373,9 @@ router.post('/api/session', async (ctx:koa.ParameterizedContext<any, {}>)=> {
   }
 });
 
+/**
+ * logout
+ */
 router.delete('/api/session',  async (ctx:koa.ParameterizedContext<any, {}>)=> {
   ctx.cookies.set('token', '', {domain:conf.domainAddress, maxAge: 1000, overwrite:true});
   ctx.body = {message:'OK'}

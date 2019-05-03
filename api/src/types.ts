@@ -10,6 +10,7 @@ export interface IUserEssential {
   email: string;
   name: string; // user's full name
   groups: string[]; // array of group name, 'guest', 'users', 'visitors', or 'administrators'
+  abbr?: string;
 }
 
 export interface ITokenContent extends IUserEssential {
@@ -36,4 +37,14 @@ export interface IEmailVerification {
   token: string;
   createdAt: Date;
   validateUntil: Date;
+}
+
+export interface IPortrait {
+  _id: any;
+  user: IUser;
+  xs: any;
+  s: any;
+  m: any;
+  l: any;
+  xl: any;
 }
