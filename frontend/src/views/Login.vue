@@ -89,8 +89,10 @@ export default class Login extends Vue {
       else {
         if (window.opener) {
           window.opener.postMessage({event: 'closed', success: true}, '*');
+          window.close();
+        } else {
+          window.location.href = '/myProfile';
         }
-        window.close();
       }
     } catch (err) {
       this.message = err.message;

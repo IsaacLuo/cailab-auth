@@ -1,5 +1,40 @@
 <template>
   <div class="my-profile">
+    <el-row :gutter="20" class="info-row">
+      <el-col :span="4" class="item-title">
+        id
+      </el-col>
+       <el-col :span="20" class="item-value">
+        {{this.user._id}}
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20" class="info-row">
+      <el-col :span="4" class="item-title">
+        email
+      </el-col>
+       <el-col :span="20" class="item-value">
+        <el-input  v-model="user.email" />
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20" class="info-row">
+      <el-col :span="4" class="item-title">
+        name
+      </el-col>
+       <el-col :span="20" class="item-value">
+        <el-input  v-model="user.fullName" />
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20" class="info-row">
+      <el-col :span="4" class="item-title">
+        groups
+      </el-col>
+       <el-col :span="20" class="item-value">
+        <el-input v-model="groupString" @change="onChangeGroups"/>
+      </el-col>
+    </el-row>
       <!-- <span slot="title" class="dialog-title">
         <img alt="logo" src="../assets/logo.png">
         <h1>login to cailab</h1>
@@ -35,6 +70,22 @@
 {
   padding: 25px;
 }
+.info-row
+{
+  margin: 25px;
+}
+.item-title
+{
+  height: 40px;
+  display:flex;
+  align-items: center;
+}
+.item-value
+{
+  height: 40px;
+  display:flex;
+  align-items: center;
+}
 </style>
 
 
@@ -54,6 +105,7 @@ export default class MyProfile extends Vue {
     fullName: string,
     groups: string[],
   };
+  private groupString!: string;
   private photo!: any;
   private message = '';
 
@@ -65,6 +117,7 @@ export default class MyProfile extends Vue {
         fullName: '',
         groups: [],
       },
+      groupString: '',
       message: '',
     };
   }
@@ -72,14 +125,20 @@ export default class MyProfile extends Vue {
   public async created() {
     try {
       const res = await axios.get(conf.serverURL + '/api/user/current', {withCredentials: true});
-      const user = res.data;
+      const user = res.data.user;
       this.user = user;
+      this.groupString = user.groups.join(';')
+      console.log(this.user);
       const res2 = await axios.get(conf.serverURL + '/api/user/current/portrait/l/portrait.jpg', {withCredentials: true});
       this.photo = res.data;
     } catch (err) {
       this.message = err.message;
       console.error(err.message);
     }
+  }
+
+  private onChangeGroups(val:any) {
+    this.user.groups = val.split(';')
   }
   
 }
