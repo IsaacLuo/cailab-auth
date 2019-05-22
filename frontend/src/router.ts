@@ -4,7 +4,7 @@ import Login from '@/views/Login.vue';
 import Signup from '@/views/Signup.vue';
 import EmailVerification from '@/views/EmailVerification.vue';
 import MyProfile from '@/views/MyProfile.vue';
-
+import UserList from '@/views/UserList.vue';
 Vue.use(Router);
 
 export default new Router({
@@ -31,7 +31,12 @@ export default new Router({
       name: 'Signup',
       component: Signup,
     },
-        {
+    {
+      path: '/users',
+      name: 'UserList',
+      component: UserList,
+    },
+    {
       path: '/emailVerification/:token',
       name: 'EmailVerification',
       component: EmailVerification,

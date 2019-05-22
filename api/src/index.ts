@@ -78,6 +78,18 @@ router.get('/api/user/current',
 getCurrentUser,
 signToken);
 
+router.get('/api/users',
+async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
+  console.log('get all users');
+  const user = ctx.state.user;
+  if(user && user.groups.indexOf('administrators') >= 0) {
+    const users = await User.find().exec();
+    ctx.body = {users};
+  } else {
+    ctx.throw(401, 'you must be adminitrator');
+  }
+});
+
 function verifyUserForm (form) :boolean {
     const {
       email,
