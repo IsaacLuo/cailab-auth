@@ -374,6 +374,32 @@ router.put('/api/user/:id', async (ctx:koa.ParameterizedContext<ICustomState, {}
   }
 }, signToken);
 
+let globalGuestToken:string = undefined;
+let globalTokenTime = new Date();
+router.post('/api/guestSession', async (ctx:koa.ParameterizedContext<any, {}>)=> {
+  if(!globalGuestToken || globalTokenTime.getTime() + 864000 < Date.now()) {
+    globalGuestToken = jwt.sign({
+        _id: '4e7020cb7cac81af7136236b',
+        fullName: 'guest',
+        email: '',
+        groups: ['guest'],
+      }, 
+      conf.secret.jwt.key,
+      {expiresIn:'30d'})
+    globalTokenTime = new Date();
+  }
+
+  // set token to domain cookie
+    ctx.cookies.set(
+    'token',
+    globalGuestToken,
+    {
+      domain:conf.domainAddress,
+      maxAge: DEFAULT_COOKIE_EXPIRE_TIME,
+    });
+    ctx.body = {message: `welcome guest`, _id:'4e7020cb7cac81af7136236b', token:globalGuestToken, name:'guest', email:'', groups:['guest']};
+});
+
 /**
  * login
  */

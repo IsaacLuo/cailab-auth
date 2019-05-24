@@ -5,6 +5,7 @@ import Signup from '@/views/Signup.vue';
 import EmailVerification from '@/views/EmailVerification.vue';
 import MyProfile from '@/views/MyProfile.vue';
 import UserList from '@/views/UserList.vue';
+import GuestLogin from '@/views/GuestLogin.vue';
 Vue.use(Router);
 
 export default new Router({
@@ -41,6 +42,11 @@ export default new Router({
       name: 'EmailVerification',
       component: EmailVerification,
     },
+    {
+      path: '/guestLogin',
+      name: 'GuestLogin',
+      component: GuestLogin,
+    }
     // {
     //   path: '/about',
     //   name: 'about',

@@ -110,6 +110,7 @@ export default function middleware (app:koa) {
   }).unless({
     path: [
       '/api/session',
+      '/api/guestSession',
       '/api/user',
       '/',
       /^\/api\/emailVerification/
