@@ -35,6 +35,15 @@
         <el-input v-model="groupString" @change="onChangeGroups"/>
       </el-col>
     </el-row>
+
+    <el-row :gutter="20" class="info-row">
+      <el-col :span="4" class="item-title">
+        portrait
+      </el-col>
+       <el-col :span="20" class="item-value">
+        <img :src="`${serverURL}/api/user/current/portrait/l/profile.jpg`"/>
+      </el-col>
+    </el-row>
       <!-- <span slot="title" class="dialog-title">
         <img alt="logo" src="../assets/logo.png">
         <h1>login to cailab</h1>
@@ -76,13 +85,13 @@
 }
 .item-title
 {
-  height: 40px;
+  min-height: 40px;
   display:flex;
   align-items: center;
 }
 .item-value
 {
-  height: 40px;
+  min-height: 40px;
   display:flex;
   align-items: center;
 }
@@ -108,6 +117,7 @@ export default class MyProfile extends Vue {
   private groupString!: string;
   private photo!: any;
   private message = '';
+  private serverURL = conf.serverURL;
 
   public data() {
     return {

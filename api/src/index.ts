@@ -115,7 +115,39 @@ router.get('/api/user/:id/portrait/:size/:filename',
     const {size} = ctx.params;
     const portraitGroup = await Portrait.findOne({user:id}).exec();
     if(!portraitGroup || !portraitGroup[size]) {
-      ctx.throw(404);
+      const user = await User.findById(id).exec();
+      if(!user) {
+        ctx.throw(404);
+      }
+      const name = user.name;
+      let svgSize = 64;
+      switch(size) {
+        case 'xl':
+          svgSize=512;
+          break;
+        case 'l':
+          svgSize=256;
+          break;
+        case 'm':
+          svgSize=128;
+          break;
+        case 's':
+          svgSize=64;
+          break;
+        case 'xs':
+          svgSize=32;
+          break;
+      }
+      const abbr = name.split(' ').slice(0,2).map(v=>v[0]).join('').toUpperCase();
+      ctx.body = `<?xml version="1.0"?>
+      <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+      <svg xmlns="http://www.w3.org/2000/svg" version="1.1" height="${svgSize}" width="${svgSize}">
+        <circle cx="${svgSize/2}" cy="${svgSize/2}" r="${svgSize/2-5}" stroke="black" stroke-width="${svgSize===32?1:3}" fill="#42f4ce" />
+        <text x="${svgSize/2}" y="${svgSize/2}" text-anchor="middle" alignment-baseline="middle" font-size="${svgSize/2*0.9}px" font-family="sans-serif">${abbr}</text>
+      </svg> 
+      `
+      ctx.type = 'image/svg+xml'
+      return;
     }
     ctx.type = 'image/jpeg'
     ctx.body = portraitGroup[size];
