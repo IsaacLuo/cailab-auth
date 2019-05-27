@@ -19,7 +19,8 @@ const readFile = util.promisify(fs.readFile);
 
 const DEFAULT_EXPIRE_TIME = '24h';
 const DEFAULT_COOKIE_EXPIRE_TIME = 1000*3600*24;
-const GUEST_ID = '4e7020cb7cac81af7136236b';
+// const GUEST_ID = '4e7020cb7cac81af7136236b';
+const GUEST_ID = '000000000000000000000000';
 
 const app = new koa();
 const router = new Router();
@@ -413,7 +414,7 @@ router.post('/api/guestSession', async (ctx:koa.ParameterizedContext<any, {}>)=>
       domain:conf.domainAddress,
       maxAge: DEFAULT_COOKIE_EXPIRE_TIME,
     });
-    ctx.body = {message: `welcome guest`, _id:'4e7020cb7cac81af7136236b', token:globalGuestToken, name:'guest', email:'', groups:['guest']};
+    ctx.body = {message: `welcome guest`, _id: GUEST_ID, token:globalGuestToken, name:'guest', email:'', groups:['guest']};
 });
 
 /**
