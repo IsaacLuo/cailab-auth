@@ -6,7 +6,7 @@ import Router from 'koa-router';
 import log4js from 'log4js';
 import conf from '../conf';
 import crypto from 'crypto';
-import { User, EmailVerification, Portrait } from './models';
+import { User, EmailVerification, Portrait, EmailResetPassword } from './models';
 import jwt from 'jsonwebtoken';
 import cors from 'koa-cors';
 import nodemailer from 'nodemailer';
@@ -29,6 +29,31 @@ app.use(cors({credentials: true}));
 app.use(koaBody({multipart:true}));
 middleware(app);
 
+function userMust (...args: Array<(ctx:koa.ParameterizedContext<any, {}>, next:()=>Promise<any>)=>boolean>) {
+  const arg = arguments;
+  return async (ctx:koa.ParameterizedContext<any, {}>, next:()=>Promise<any>)=> {
+    if (Array.prototype.some.call(arg, f=>f(ctx))) {
+      await next();
+    } else {
+      ctx.throw(401);
+    }
+  };
+}
+
+function beUser (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>) {
+  return ctx.state.user && 
+    (ctx.state.user.groups.indexOf('users')>=0 || ctx.state.user.groups.indexOf('emma/users')>=0) &&
+    (ctx.state.user.groups.indexOf('emma/forbidden')<0);
+}
+
+function beAdmin (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>) {
+  return ctx.state.user && (ctx.state.user.groups.indexOf('administrators')>=0 || ctx.state.user.groups.indexOf('emma/administrators')>=0);
+}
+
+function beGuest (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>) {
+  return ctx.state.user === undefined || ctx.state.user._id === GUEST_ID;
+}
+
 app.use(async (ctx:koa.ParameterizedContext<any, {}>, next:()=>Promise<any>)=> {
 
   await next();
@@ -40,6 +65,7 @@ async function signToken (ctx:koa.ParameterizedContext<ICustomState, {}>, next: 
   // sign token
   const token = jwt.sign({
     _id: user._id,
+    name: user.name,
     fullName: user.name,
     email: user.email,
     groups: user.groups,
@@ -81,6 +107,14 @@ getCurrentUser,
 signToken);
 
 router.get('/api/users',
+async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
+  try {
+    await next();
+  } catch (err) {
+    console.log('catched.....', err);
+  }
+},
+userMust(beAdmin),
 async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
   console.log('get all users');
   const user = ctx.state.user;
@@ -239,8 +273,42 @@ const sendVerificationEmail = async (ctx:koa.ParameterizedContext<any, {}>, next
   const info = await transporter.sendMail({
     from: conf.secret.mail.address,
     to: ctx.state.email,
-    subject: conf.mail.subject,
-    html: conf.mail.htmlTemplate
+    subject: conf.mails.verification.subject,
+    html: conf.mails.verification.htmlTemplate
+          .replace(/{%verificationLink%}/g, `${conf.serverAddress}/emailVerification/${token}`)
+          .replace(/{%validateUntil%}/g,validateUntil.toLocaleString()),
+  });
+  console.log("Message sent: %s", info.messageId);
+  } catch (error) {
+    ctx.throw('failed sending verfication email', 500);
+  }
+  await next();
+}
+
+/**
+ * send an email for password resetting
+ * @param ctx.state.email email for verification 
+ */
+const sendResetPasswordEmail = async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
+  try {
+  // generate a token for email verification
+  const {email} = ctx.state;
+  const token = uuid.v4();
+  const now = new Date();
+  const validateUntil = new Date(Date.now()+3600*1000); // 1 hour
+  await EmailResetPassword.create({
+    email,
+    token,
+    createdAt: now,
+    validateUntil,
+  })
+  // send email to the address
+  const transporter = nodemailer.createTransport(conf.secret.mail.server);
+  const info = await transporter.sendMail({
+    from: conf.secret.mail.address,
+    to: ctx.state.email,
+    subject: conf.mails.verification.subject,
+    html: conf.mails.verification.htmlTemplate
           .replace(/{%verificationLink%}/g, `${conf.serverAddress}/emailVerification/${token}`)
           .replace(/{%validateUntil%}/g,validateUntil.toLocaleString()),
   });
@@ -353,7 +421,9 @@ cleanVericicationEmail);
 /** 
  * modify user 
  */
-router.put('/api/user/:id', async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
+router.put('/api/user/:id',
+// userMust(beUser),
+async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
   const {id} = ctx.params;
   if (ctx.state.user.groups.indexOf('administrators') >= 0) {
     // administrators, can do any change
@@ -370,6 +440,7 @@ router.put('/api/user/:id', async (ctx:koa.ParameterizedContext<ICustomState, {}
       newBody.password = password;
     }
     ctx.request.body = newBody;
+    console.log(ctx.request.body);
     await next();
   } else {
     ctx.throw(401, `not a admin`);
@@ -379,6 +450,12 @@ router.put('/api/user/:id', async (ctx:koa.ParameterizedContext<ICustomState, {}
   // console.warn(ctx.request.body);
   const {id} = ctx.params;
   ctx.request.body.updatedAt = new Date();
+  console.log(ctx.request.body);
+  if (ctx.request.body.password) {
+    ctx.request.body.passwordSalt = Math.random().toString(36).substring(2);
+    ctx.request.body.passwordHash = crypto.createHmac('sha256', conf.secret.HMAC_KEY).update(ctx.request.body.password+ctx.request.body.passwordSalt).digest().toString('base64');
+    delete ctx.request.body.password;
+  }
   await User.updateOne({_id:id}, ctx.request.body).exec();
   const updatedUser = await User.findOne({_id:id}).exec();
   ctx.body = {message:'OK', changedKeys:Object.keys(ctx.request.body)};
@@ -397,6 +474,7 @@ router.post('/api/guestSession', async (ctx:koa.ParameterizedContext<any, {}>)=>
   if(!globalGuestToken || globalTokenTime.getTime() + 864000 < Date.now()) {
     globalGuestToken = jwt.sign({
         _id: GUEST_ID,
+        name: 'guest',
         fullName: 'guest',
         email: '',
         groups: ['guest'],
@@ -432,12 +510,16 @@ router.post('/api/session', async (ctx:koa.ParameterizedContext<any, {}>)=> {
   }
   
   const {passwordHash, passwordSalt} = user;
+  if(!passwordHash || !passwordSalt) {
+    ctx.throw(406, 'plase reset password');
+  }
   const passwordHash2 = crypto.createHmac('sha256', conf.secret.HMAC_KEY).update(password+passwordSalt).digest().toString('base64');
   if(passwordHash === passwordHash2) {
     user.save();
 
     const token = jwt.sign({
       _id:user._id,
+      name: user.name,
       fullName: user.name,
       email: user.email,
       groups: user.groups,

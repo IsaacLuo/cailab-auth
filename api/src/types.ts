@@ -27,6 +27,7 @@ export interface IUser extends IUserEssential {
 
 export interface ICustomState {
   user?: ITokenContent;
+  message? :string;
   data?: any;
   forceRefreshToken?: boolean;
 }

@@ -37,6 +37,13 @@ export const EmailVerificationSchema = new Schema({
   validateUntil: Date,
 });
 
+export const EmailResetPasswordSchema = new Schema({
+  email: String,
+  token: String,
+  createdAt: Date,
+  validateUntil: Date,
+});
+
 
 export interface IUserModel extends IUser, Document{}
 export interface IEmailVerificationModel extends IEmailVerification, Document{}
@@ -44,4 +51,5 @@ export interface IPortraitModel extends IPortrait, Document{}
 
 export const User:Model<IUserModel> = mongoose.model('User', UserSchema, 'users');
 export const EmailVerification:Model<IEmailVerificationModel> = mongoose.model('EmailVerification', EmailVerificationSchema, 'email_verifications');
+export const EmailResetPassword:Model<IEmailVerificationModel> = mongoose.model('EmailResetPassword', EmailResetPasswordSchema, 'email_reset_password');
 export const Portrait:Model<IPortraitModel> = mongoose.model('portraits', PortraitSchema, 'portraits');

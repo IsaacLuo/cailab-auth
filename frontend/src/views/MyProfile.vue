@@ -4,7 +4,7 @@
       <el-col :span="4" class="item-title">
         id
       </el-col>
-       <el-col :span="20" class="item-value">
+      <el-col :span="20" class="item-value">
         {{this.user._id}}
       </el-col>
     </el-row>
@@ -13,8 +13,8 @@
       <el-col :span="4" class="item-title">
         email
       </el-col>
-       <el-col :span="20" class="item-value">
-        <el-input  v-model="user.email" />
+      <el-col :span="20" class="item-value">
+        <div >{{user.email}}</div>
       </el-col>
     </el-row>
 
@@ -22,8 +22,25 @@
       <el-col :span="4" class="item-title">
         name
       </el-col>
-       <el-col :span="20" class="item-value">
-        <el-input  v-model="user.fullName" />
+      <el-col :span="20" class="item-value">
+        <el-input  v-model="user.name" />
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20" class="info-row">
+      <el-col :span="4" class="item-title">
+        password
+      </el-col>
+      <el-col :span="20" class="item-value">
+        <el-input  v-model="password" />
+      </el-col>
+    </el-row>
+    <el-row :gutter="20" class="info-row">
+      <el-col :span="4" class="item-title">
+        password confirmation
+      </el-col>
+      <el-col :span="20" class="item-value">
+        <el-input  v-model="passwordConfirmation" />
       </el-col>
     </el-row>
 
@@ -31,8 +48,9 @@
       <el-col :span="4" class="item-title">
         groups
       </el-col>
-       <el-col :span="20" class="item-value">
-        <el-input v-model="groupString" @change="onChangeGroups"/>
+      <el-col :span="20" class="item-value">
+        <el-input v-model="groupString" @change="onChangeGroups" v-if="user.groups.indexOf('administrators')>=0"/>
+        <div v-else>{{groupString === '' ? 'guests' : groupString}}</div>
       </el-col>
     </el-row>
 
@@ -40,33 +58,13 @@
       <el-col :span="4" class="item-title">
         portrait
       </el-col>
-       <el-col :span="20" class="item-value">
+      <el-col :span="20" class="item-value">
         <img :src="`${serverURL}/api/user/current/portrait/l/profile.jpg`"/>
       </el-col>
     </el-row>
-      <!-- <span slot="title" class="dialog-title">
-        <img alt="logo" src="../assets/logo.png">
-        <h1>login to cailab</h1>
-      </span>
-      <span>
-        <el-form ref="form" :model="form" label-width="80px">
-          <el-form-item label="email">
-            <el-input v-model="form.email"></el-input>
-          </el-form-item>
-          <el-form-item label="password">
-            <el-input type="password" v-model="form.password"></el-input>
-          </el-form-item>
-          <el-form-item class="alignRight">
-            <router-link :to="this.$route.query.from ? `/signup?from=${this.$route.query.from}`: '/signup'">not a user? sign up here</router-link>
-          </el-form-item>
-        </el-form>
-        <div>{{this.message}}</div>
-      </span>
-      <span slot="footer" class="dialog-footer">
-        
-        <el-button type="primary" @click="onSubmit">submit</el-button>
-        <el-button @click="onCancel">Cancel</el-button>
-      </span>  -->
+    <div style="text-align:right">
+      <el-button type="primary" @click="onSaveProfile">save</el-button>
+    </div>
   </div>
 </template>
 
@@ -102,6 +100,7 @@
 import { Component, Prop, Vue } from 'vue-property-decorator';
 import axios from 'axios';
 import conf from '@/../conf';
+import { Notification } from 'element-ui';
 
 @Component({
   components: {
@@ -111,24 +110,28 @@ export default class MyProfile extends Vue {
   private user!: {
     _id: string,
     email: string,
-    fullName: string,
+    name: string,
     groups: string[],
   };
   private groupString!: string;
   private photo!: any;
   private message = '';
   private serverURL = conf.serverURL;
+  private password!: string;
+  private passwordConfirmation!: string;
 
   public data() {
     return {
       user: {
         _id: '',
         email: '',
-        fullName: '',
+        name: '',
         groups: [],
       },
       groupString: '',
       message: '',
+      password: '',
+      passwordConfirmation: '',
     };
   }
 
@@ -149,6 +152,49 @@ export default class MyProfile extends Vue {
 
   private onChangeGroups(val:any) {
     this.user.groups = val.split(';')
+  }
+
+  private verifyPasswordComplicity(password:string, passwordConfirmation:string) {
+    if (passwordConfirmation !== password) {
+      return {success:false, message: 'passwords don\'t match'};
+    }  
+    if (
+      !(
+        password.length >= 8 &&
+        /[A-Z]/.test(password) &&
+        /[a-z]/.test(password) &&
+        /[0-9]/.test(password)
+      )
+    ) {
+      return {success:false, message:'password should match complicity requirement'};
+    }
+    return {success:true, message:''};
+}
+
+  private async onSaveProfile(val:any) {
+    try {
+      const payload:any = {name: this.user.name};
+      if (/^[A-Za-z0-9\.-]+ [A-Za-z0-9\.-]+$/.test(payload.name)) {
+        payload.name = this.user.name;
+      } else {
+        Notification.error('name is invalid');
+        return;
+      }
+      if (this.password !== '') {
+        const {success, message} = this.verifyPasswordComplicity(this.password, this.passwordConfirmation);
+        if (success) {
+          payload.password = this.password;
+        } else {
+          Notification.error(message);
+          return;
+        }
+      }
+      const res = await axios.put(conf.serverURL + `/api/user/${this.user._id}`, payload, {withCredentials: true});
+      Notification.success('profile updated');
+      console.log('changed keys', res.data.changedKeys);
+    } catch (err) {
+      Notification.error('unable to update profile');
+    }
   }
   
 }

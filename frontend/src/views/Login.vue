@@ -10,7 +10,7 @@
             <el-input v-model="form.email"></el-input>
           </el-form-item>
           <el-form-item label="password">
-            <el-input type="password" v-model="form.password"></el-input>
+            <el-input type="password" v-model="form.password" @keyup.enter.native="onSubmit"></el-input>
           </el-form-item>
           <el-form-item class="alignRight">
             <router-link :to="this.$route.query.from ? `/signup?from=${this.$route.query.from}`: '/signup'">not a user? sign up here</router-link>
