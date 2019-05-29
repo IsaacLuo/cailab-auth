@@ -292,12 +292,14 @@ const sendVerificationEmail = async (ctx:koa.ParameterizedContext<any, {}>, next
 const sendResetPasswordEmail = async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
   try {
   // generate a token for email verification
-  const {email} = ctx.state;
+  const user = ctx.state.data;
   const token = uuid.v4();
   const now = new Date();
   const validateUntil = new Date(Date.now()+3600*1000); // 1 hour
   await EmailResetPassword.create({
-    email,
+    userId: user.id,
+    userName: user.name,
+    email:user.email,
     token,
     createdAt: now,
     validateUntil,
@@ -388,6 +390,55 @@ router.post('/api/user/emailVerification', async (ctx:koa.ParameterizedContext<a
  * verify email by sending token in email
  */
 router.get('/api/emailVerification/:token', async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
+  const {token} = ctx.params;
+  const emailVerification = await EmailVerification.findOne({token}).exec();
+  if(!emailVerification) {
+    ctx.throw(404);
+  }
+  const now = new Date();
+  if (now > emailVerification.validateUntil) {
+    ctx.throw(404);
+  }
+  const user = await User.findOne({email: emailVerification.email}).exec();
+  if(!user) {
+    ctx.throw(404);    
+  }
+
+  const groupIdx = user.groups.indexOf('emailNotVerified');
+  if(groupIdx === -1) {
+    ctx.throw('email already verified', 410);
+  }
+
+  user.groups.splice(groupIdx,1);
+  // user.groups[groupIdx] = 'guest';
+  await user.save();
+  ctx.state.forceRefreshToken = true;
+  ctx.state.user = {_id: user._id, email: user.email, name: user.name, groups: user.groups, iat: Math.floor(Date.now()/1000), exp: Math.floor(Date.now()/1000)+5};
+  await next();
+}, 
+getCurrentUser,
+signToken,
+cleanVericicationEmail);
+
+/**
+ * request new email resetting password
+ * @bopdy, {email:}
+ */
+router.post('/api/user/emailResetPassword',
+async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=>{
+  const {email} = ctx.request.body;
+  const user = await User.findOne({email}).exec();
+  if (user) {
+    // found user, send password resetting email
+    ctx.state.data = user;
+    await next();
+  }
+}, sendResetPasswordEmail);
+
+/**
+ * verify email by sending token in email
+ */
+router.get('/api/emailResetPassword/:token', async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
   const {token} = ctx.params;
   const emailVerification = await EmailVerification.findOne({token}).exec();
   if(!emailVerification) {
