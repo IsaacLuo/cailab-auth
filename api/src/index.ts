@@ -106,6 +106,21 @@ router.get('/api/user/current',
 getCurrentUser,
 signToken);
 
+router.get('/api/user/:id',
+async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
+  if (beAdmin(ctx,next)) {
+    await next();
+  } else {
+    const user = await User.findById(ctx.params.id).select("_id name groups").exec();
+    ctx.body = {message:'OK', user,};
+  }
+},
+async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
+  const user = await User.findById(ctx.params.id).select("_id name groups email").exec();
+  ctx.body = {message:'OK', user,};
+},
+);
+
 router.get('/api/users',
 async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
   try {

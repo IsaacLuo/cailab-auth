@@ -32,7 +32,7 @@
         password
       </el-col>
       <el-col :span="20" class="item-value">
-        <el-input  v-model="password" />
+        <el-input  v-model="password" type="password"/>
       </el-col>
     </el-row>
     <el-row :gutter="20" class="info-row">
@@ -40,7 +40,7 @@
         password confirmation
       </el-col>
       <el-col :span="20" class="item-value">
-        <el-input  v-model="passwordConfirmation" />
+        <el-input  v-model="passwordConfirmation" type="password" />
       </el-col>
     </el-row>
 
@@ -59,11 +59,14 @@
         portrait
       </el-col>
       <el-col :span="20" class="item-value">
-        <img :src="`${serverURL}/api/user/current/portrait/l/profile.jpg`"/>
+        <img :src="`${serverURL}/api/user/${user._id}/portrait/l/profile.jpg`" v-if="user._id"/>
       </el-col>
     </el-row>
     <div style="text-align:right">
       <el-button type="primary" @click="onSaveProfile">save</el-button>
+      <router-link to="/users/" v-if="user.groups.indexOf('administrators')>=0">
+        <el-button type="secondary" >all users</el-button>
+      </router-link>
     </div>
   </div>
 </template>
@@ -114,7 +117,7 @@ export default class MyProfile extends Vue {
     groups: string[],
   };
   private groupString!: string;
-  private photo!: any;
+  // private photo!: any;
   private message = '';
   private serverURL = conf.serverURL;
   private password!: string;
@@ -137,13 +140,18 @@ export default class MyProfile extends Vue {
 
   public async created() {
     try {
-      const res = await axios.get(conf.serverURL + '/api/user/current', {withCredentials: true});
+      let userId = this.$route.params.id;
+      console.log(userId);
+      if (!userId) {
+        userId = 'current';
+      }
+      const res = await axios.get(conf.serverURL + `/api/user/${userId}`, {withCredentials: true});
       const user = res.data.user;
       this.user = user;
-      this.groupString = user.groups.join(';')
+      this.groupString = user.groups ? user.groups.join(';') : '';
       console.log(this.user);
-      const res2 = await axios.get(conf.serverURL + '/api/user/current/portrait/l/portrait.jpg', {withCredentials: true});
-      this.photo = res.data;
+      // const res2 = await axios.get(conf.serverURL + `/api/user/${userId}/portrait/l/portrait.jpg`, {withCredentials: true});
+      // this.photo = res.data;
     } catch (err) {
       this.message = err.message;
       console.error(err.message);
@@ -188,6 +196,10 @@ export default class MyProfile extends Vue {
           Notification.error(message);
           return;
         }
+      }
+      if (this.user.groups.indexOf('administrators')>=0) {
+        const groups = this.groupString.split(';')
+        payload.groups = groups;
       }
       const res = await axios.put(conf.serverURL + `/api/user/${this.user._id}`, payload, {withCredentials: true});
       Notification.success('profile updated');

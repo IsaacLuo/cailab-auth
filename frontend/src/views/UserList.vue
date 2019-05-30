@@ -10,7 +10,7 @@
     <tbody>
     <tr v-for="user in users" :key="user._id">
       <td><img :src="`${conf.serverURL}/api/user/${user._id}/portrait/s/profile.jpg`" /></td>
-      <td>{{user._id}}</td>
+      <td><router-link :to="`/user/${user._id}`">{{user._id}}</router-link></td>
       <td>{{user.name}}</td>
       <td>{{user.email}}</td>
       <td>{{user.groups}}</td>
