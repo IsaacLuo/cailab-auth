@@ -90,10 +90,12 @@ router.get('/', async (ctx:koa.ParameterizedContext<any, {}>)=> {
 })
 
 const getCurrentUser =  async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
-  if (ctx.query.full) {
-    await next();
-  } else {
-    const user = ctx.state.user;
+  let user:any;
+  user = ctx.state.user;
+  if (user) {
+    if (ctx.query.full) {
+      user = await User.findOne({_id:ctx.state.user._id}).select('groups _id email name createdAt updatedAt authType abbr').exec();
+    }
     ctx.body = {message:'OK', user,};
     if (user) {
       const now = Math.floor(Date.now() / 1000);
@@ -106,17 +108,8 @@ const getCurrentUser =  async (ctx:koa.ParameterizedContext<ICustomState, {}>, n
   }
 };
 
-const getCurrentUserFull =  async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
-  if (ctx.query.full) {
-    const user = await User.findById(ctx.state.user._id).exec();    
-    ctx.body = {message:'OK', user,};
-  }
-  await next();
-};
-
 router.get('/api/user/current',
 getCurrentUser,
-getCurrentUserFull,
 signToken);
 
 router.get('/api/user/:id',
