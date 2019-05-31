@@ -122,7 +122,7 @@ async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> 
   }
 },
 async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
-  const user = await User.findById(ctx.params.id).select("_id name groups email").exec();
+  const user = await User.findById(ctx.params.id).select('groups _id email name createdAt updatedAt authType abbr').exec();
   ctx.body = {message:'OK', user,};
 },
 );
