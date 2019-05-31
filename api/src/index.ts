@@ -90,20 +90,33 @@ router.get('/', async (ctx:koa.ParameterizedContext<any, {}>)=> {
 })
 
 const getCurrentUser =  async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
-  const user = ctx.state.user;
-  ctx.body = {message:'OK', user,};
-  if (user) {
-    const now = Math.floor(Date.now() / 1000);
-    const eta = ctx.state.user.exp - now;
-    ctx.body.eta = eta;
-    if (eta >= 0 && eta <= 360 || ctx.state.forceRefreshToken) {
-      await next();
+  if (ctx.query.full) {
+    await next();
+  } else {
+    const user = ctx.state.user;
+    ctx.body = {message:'OK', user,};
+    if (user) {
+      const now = Math.floor(Date.now() / 1000);
+      const eta = ctx.state.user.exp - now;
+      ctx.body.eta = eta;
+      if (eta >= 0 && eta <= 360 || ctx.state.forceRefreshToken) {
+        await next();
+      }
     }
   }
 };
 
+const getCurrentUserFull =  async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
+  if (ctx.query.full) {
+    const user = await User.findById(ctx.state.user._id).exec();    
+    ctx.body = {message:'OK', user,};
+  }
+  await next();
+};
+
 router.get('/api/user/current',
 getCurrentUser,
+getCurrentUserFull,
 signToken);
 
 router.get('/api/user/:id',
