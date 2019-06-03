@@ -14,6 +14,8 @@
           </el-form-item>
           <el-form-item class="alignRight">
             <router-link :to="this.$route.query.from ? `/signup?from=${this.$route.query.from}`: '/signup'">not a user? sign up here</router-link>
+            <br>
+            <router-link :to="this.$route.query.from ? `/resetPassword?from=${this.$route.query.from}`: '/resetPassword'">forgot password?</router-link>
           </el-form-item>
         </el-form>
         <div>{{this.message}}</div>

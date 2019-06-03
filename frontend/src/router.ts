@@ -6,6 +6,8 @@ import EmailVerification from '@/views/EmailVerification.vue';
 import MyProfile from '@/views/MyProfile.vue';
 import UserList from '@/views/UserList.vue';
 import GuestLogin from '@/views/GuestLogin.vue';
+import ResetPassword from '@/views/ResetPassword.vue';
+import ChangePassword from '@/views/ChangePassword.vue';
 Vue.use(Router);
 
 export default new Router({
@@ -46,6 +48,16 @@ export default new Router({
       path: '/emailVerification/:token',
       name: 'EmailVerification',
       component: EmailVerification,
+    },
+    {
+      path: '/resetPassword',
+      name: 'ResetPassword',
+      component: ResetPassword,
+    },
+    {
+      path: '/changePassword/:token',
+      name: 'ChangePassword',
+      component: ChangePassword,
     },
     {
       path: '/guestLogin',

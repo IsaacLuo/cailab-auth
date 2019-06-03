@@ -318,21 +318,22 @@ const sendResetPasswordEmail = async (ctx:koa.ParameterizedContext<any, {}>, nex
   const now = new Date();
   const validateUntil = new Date(Date.now()+3600*1000); // 1 hour
   await EmailResetPassword.create({
-    userId: user.id,
+    userId: user._id,
     userName: user.name,
     email:user.email,
     token,
     createdAt: now,
     validateUntil,
+    used: false,
   })
   // send email to the address
   const transporter = nodemailer.createTransport(conf.secret.mail.server);
   const info = await transporter.sendMail({
     from: conf.secret.mail.address,
-    to: ctx.state.email,
-    subject: conf.mails.verification.subject,
-    html: conf.mails.verification.htmlTemplate
-          .replace(/{%verificationLink%}/g, `${conf.serverAddress}/emailVerification/${token}`)
+    to: user.email,
+    subject: conf.mails.resetPassword.subject,
+    html: conf.mails.resetPassword.htmlTemplate
+          .replace(/{%verificationLink%}/g, `${conf.serverAddress}/changePassword/${token}`)
           .replace(/{%validateUntil%}/g,validateUntil.toLocaleString()),
   });
   console.log("Message sent: %s", info.messageId);
@@ -449,9 +450,11 @@ router.post('/api/user/emailResetPassword',
 async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=>{
   const {email} = ctx.request.body;
   const user = await User.findOne({email}).exec();
+  ctx.body = {message: 'OK'};
   if (user) {
     // found user, send password resetting email
     ctx.state.data = user;
+    console.log(`resetting password of ${user.name}`);
     await next();
   }
 }, sendResetPasswordEmail);
@@ -459,29 +462,32 @@ async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=>{
 /**
  * verify email by sending token in email
  */
-router.get('/api/emailResetPassword/:token', async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
+router.put('/api/user/password/:token', async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
   const {token} = ctx.params;
-  const emailVerification = await EmailVerification.findOne({token}).exec();
-  if(!emailVerification) {
+  const emailResetPassword = await EmailResetPassword.findOne({token, used: false}).exec();
+  if(!emailResetPassword) {
+    console.error('no email of resetting password');
     ctx.throw(404);
   }
   const now = new Date();
-  if (now > emailVerification.validateUntil) {
+  if (now > emailResetPassword.validateUntil) {
+    console.error('resetting password email expired');
     ctx.throw(404);
   }
-  const user = await User.findOne({email: emailVerification.email}).exec();
+  const user = await User.findOne({email: emailResetPassword.email}).exec();
   if(!user) {
-    ctx.throw(404);    
+    console.error('unable to fine user to modify password');
+    ctx.throw(404);
   }
 
-  const groupIdx = user.groups.indexOf('emailNotVerified');
-  if(groupIdx === -1) {
-    ctx.throw('email already verified', 410);
-  }
-
-  user.groups.splice(groupIdx,1);
-  // user.groups[groupIdx] = 'guest';
+  // set password
+  user.passwordSalt = Math.random().toString(36).substring(2);
+  user.passwordHash = crypto.createHmac('sha256', conf.secret.HMAC_KEY).update(ctx.request.body.password+ctx.request.body.passwordSalt).digest().toString('base64');
   await user.save();
+  console.log('user password chagned', user.name);
+  emailResetPassword.used = true;
+  await emailResetPassword.save();
+
   ctx.state.forceRefreshToken = true;
   ctx.state.user = {_id: user._id, email: user.email, name: user.name, groups: user.groups, iat: Math.floor(Date.now()/1000), exp: Math.floor(Date.now()/1000)+5};
   await next();

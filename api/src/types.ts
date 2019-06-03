@@ -40,6 +40,15 @@ export interface IEmailVerification {
   validateUntil: Date;
 }
 
+export interface IEmailResetPassword {
+  _id: any;
+  email: string;
+  token: string;
+  createdAt: Date;
+  validateUntil: Date;
+  used: boolean;
+}
+
 export interface IPortrait {
   _id: any;
   user: IUser;

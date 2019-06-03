@@ -1,4 +1,4 @@
-import { IUser, IEmailVerification, IPortrait } from './types';
+import { IUser, IEmailVerification, IEmailResetPassword, IPortrait } from './types';
 import mongoose, { Model, Document } from 'mongoose'
 import {Schema} from 'mongoose'
 
@@ -42,14 +42,16 @@ export const EmailResetPasswordSchema = new Schema({
   token: String,
   createdAt: Date,
   validateUntil: Date,
+  used: Boolean,
 });
 
 
 export interface IUserModel extends IUser, Document{}
 export interface IEmailVerificationModel extends IEmailVerification, Document{}
+export interface IEMailResetPasswordModel extends IEmailResetPassword, Document{}
 export interface IPortraitModel extends IPortrait, Document{}
 
 export const User:Model<IUserModel> = mongoose.model('User', UserSchema, 'users');
 export const EmailVerification:Model<IEmailVerificationModel> = mongoose.model('EmailVerification', EmailVerificationSchema, 'email_verifications');
-export const EmailResetPassword:Model<IEmailVerificationModel> = mongoose.model('EmailResetPassword', EmailResetPasswordSchema, 'email_reset_password');
+export const EmailResetPassword:Model<IEMailResetPasswordModel> = mongoose.model('EmailResetPassword', EmailResetPasswordSchema, 'email_reset_password');
 export const Portrait:Model<IPortraitModel> = mongoose.model('portraits', PortraitSchema, 'portraits');
