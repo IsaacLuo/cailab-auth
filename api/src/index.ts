@@ -432,6 +432,7 @@ router.get('/api/emailVerification/:token', async (ctx:koa.ParameterizedContext<
   }
 
   user.groups.splice(groupIdx,1);
+  user.updatedAt = now;
   // user.groups[groupIdx] = 'guest';
   await user.save();
   ctx.state.forceRefreshToken = true;
@@ -482,7 +483,9 @@ router.put('/api/user/password/:token', async (ctx:koa.ParameterizedContext<ICus
 
   // set password
   user.passwordSalt = Math.random().toString(36).substring(2);
-  user.passwordHash = crypto.createHmac('sha256', conf.secret.HMAC_KEY).update(ctx.request.body.password+ctx.request.body.passwordSalt).digest().toString('base64');
+  // console.log(ctx.request.body.password+user.passwordSalt);
+  user.passwordHash = crypto.createHmac('sha256', conf.secret.HMAC_KEY).update(ctx.request.body.password+user.passwordSalt).digest().toString('base64');
+  user.updatedAt = now;
   await user.save();
   console.log('user password chagned', user.name);
   emailResetPassword.used = true;
