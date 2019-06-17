@@ -113,7 +113,8 @@ export default function middleware (app:koa) {
       '/api/guestSession',
       '/api/user',
       '/',
-      /^\/api\/emailVerification/
+      /^\/api\/emailVerification/,
+      '/api/user/emailResetPassword'
     ]
   }))
 
