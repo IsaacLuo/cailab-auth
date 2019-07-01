@@ -114,7 +114,8 @@ export default function middleware (app:koa) {
       '/api/user',
       '/',
       /^\/api\/emailVerification/,
-      '/api/user/emailResetPassword'
+      '/api/user/emailResetPassword',
+      /^\/api\/user\/password\//,
     ]
   }))
 
