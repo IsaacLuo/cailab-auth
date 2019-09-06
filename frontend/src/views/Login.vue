@@ -91,7 +91,7 @@ export default class Login extends Vue {
       else {
         if (window.opener) {
           window.opener.postMessage({event: 'closed', success: true}, '*');
-          window.close();
+          window.setTimeout(()=>window.close(),1000)
         } else {
           window.location.href = '/myProfile';
         }
