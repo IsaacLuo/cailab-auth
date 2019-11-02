@@ -16,7 +16,7 @@
     "koa-jwt": "^3.5.1",
     "koa-router": "^7.4.0",
     "log4js": "^4.1.0",
-    "mongoose": "^5.4.20",
+    "mongoose": "^5.7.5",
     "nodemailer": "^6.1.1",
     "sharp": "^0.22.1",
     "uuid": "^3.3.2"
