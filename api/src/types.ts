@@ -30,6 +30,7 @@ export interface ICustomState {
   message? :string;
   data?: any;
   forceRefreshToken?: boolean;
+  request:any;
 }
 
 export interface IEmailVerification {

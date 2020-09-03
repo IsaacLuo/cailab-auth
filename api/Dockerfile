@@ -1,8 +1,8 @@
-FROM node:10
+FROM node:14
 WORKDIR /app
 EXPOSE 8000
 ADD ./package.json .
-ADD ./yarn.lock ./
+ADD ./yarn.lock .
 RUN yarn install
 ADD . .
 RUN yarn build
