@@ -8,12 +8,16 @@ import conf from '../conf';
 import crypto from 'crypto';
 import { User, EmailVerification, Portrait, EmailResetPassword } from './models';
 import jwt from 'jsonwebtoken';
-import cors from 'koa-cors';
 import nodemailer from 'nodemailer';
 import uuid from 'uuid';
 import sharp from 'sharp';
 import fs from 'fs';
 import util from 'util';
+
+
+type RouterCtx = koa.ParameterizedContext<any, Router.IRouterParamContext<any, {}>>;
+type MyMiddleware = Router.IMiddleware<RouterCtx>;
+type Next = ()=>Promise<any>;
 
 const readFile = util.promisify(fs.readFile);
 
@@ -25,13 +29,21 @@ const GUEST_ID = '000000000000000000000000';
 const app = new koa();
 const router = new Router();
 
-app.use(cors({credentials: true}));
+app.use( async (ctx:koa.Context, next:()=>Promise<any>) => {
+  if (/cailab\.org/.test(ctx.request.origin)) {
+      ctx.res.setHeader('Access-Control-Allow-Origin', ctx.request.origin)
+      ctx.res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type')
+      ctx.res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE')
+      ctx.res.setHeader('Access-Control-Allow-Credentials', 'true')
+  }
+  await next();
+})
 app.use(koaBody({multipart:true}));
 middleware(app);
 
-function userMust (...args: Array<(ctx:koa.ParameterizedContext<any, {}>, next:()=>Promise<any>)=>boolean>) {
+function userMust (...args: Array<(ctx:RouterCtx, next:Next)=>boolean>) {
   const arg = arguments;
-  return async (ctx:koa.ParameterizedContext<any, {}>, next:()=>Promise<any>)=> {
+  return async (ctx:RouterCtx, next:()=>Promise<any>)=> {
     if (Array.prototype.some.call(arg, f=>f(ctx))) {
       await next();
     } else {
@@ -40,17 +52,17 @@ function userMust (...args: Array<(ctx:koa.ParameterizedContext<any, {}>, next:(
   };
 }
 
-function beUser (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>) {
+function beUser (ctx:koa.ParameterizedContext<ICustomState, any>, next:()=>Promise<any>) {
   return ctx.state.user && 
     (ctx.state.user.groups.indexOf('users')>=0 || ctx.state.user.groups.indexOf('emma/users')>=0) &&
     (ctx.state.user.groups.indexOf('emma/forbidden')<0);
 }
 
-function beAdmin (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>) {
+function beAdmin (ctx:koa.ParameterizedContext<ICustomState, any>, next:()=>Promise<any>) {
   return ctx.state.user && (ctx.state.user.groups.indexOf('administrators')>=0 || ctx.state.user.groups.indexOf('emma/administrators')>=0);
 }
 
-function beGuest (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>) {
+function beGuest (ctx:koa.ParameterizedContext<ICustomState, any>, next:()=>Promise<any>) {
   return ctx.state.user === undefined || ctx.state.user._id === GUEST_ID;
 }
 
@@ -85,7 +97,7 @@ async function signToken (ctx:koa.ParameterizedContext<ICustomState, {}>, next: 
   await next();
 }
 
-router.get('/', async (ctx:koa.ParameterizedContext<any, {}>)=> {
+router.get('/', async (ctx)=> {
   ctx.body={message:'OK', env: process.env.NODE_ENV, sv: conf.secret.mongoDB.url};
 })
 
@@ -113,7 +125,7 @@ getCurrentUser,
 signToken);
 
 router.get('/api/user/:id',
-async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
+async (ctx, next)=> {
   if (beAdmin(ctx,next)) {
     await next();
   } else {
@@ -121,14 +133,25 @@ async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> 
     ctx.body = {message:'OK', user,};
   }
 },
-async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
+async (ctx, next)=> {
   const user = await User.findById(ctx.params.id).select('groups _id email name createdAt updatedAt authType abbr').exec();
   ctx.body = {message:'OK', user,};
 },
 );
 
+// (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>
+
+
+const m:MyMiddleware = async (ctx, next) => {
+  try {
+    await next();
+  } catch (err) {
+    console.log('catched.....', err);
+  }
+}
+
 router.get('/api/users',
-async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
+async (ctx, next) => {
   try {
     await next();
   } catch (err) {
@@ -136,7 +159,7 @@ async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> 
   }
 },
 userMust(beAdmin),
-async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
+async (ctx, next)=> {
   console.log('get all users');
   const user = ctx.state.user;
   if(user && user.groups.indexOf('administrators') >= 0) {
