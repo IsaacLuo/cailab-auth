@@ -605,7 +605,6 @@ router.post('/api/guestSession', async (ctx)=> {
     {
       domain:conf.domainAddress,
       maxAge: DEFAULT_COOKIE_EXPIRE_TIME,
-      sameSite: 'none',
     });
     ctx.body = {message: `welcome guest`, _id: GUEST_ID, token:globalGuestToken, name:'guest', email:'', groups:['guest']};
 });
