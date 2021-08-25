@@ -64,12 +64,7 @@ export default function middleware (app:koa) {
         case 3:
         case 0:
         await mongoose.connect(
-          conf.secret.mongoDB.url,
-          {
-            // useNewUrlParser: true,
-            user: conf.secret.mongoDB.username,
-            pass: conf.secret.mongoDB.password, 
-          }
+          conf.secret.mongoDB.url
         );
         break;
       }

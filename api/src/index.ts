@@ -32,11 +32,11 @@ const app = new koa();
 const router = new Router();
 
 app.use( async (ctx, next) => {
-  if (/cailab\.org/.test(ctx.request.host)) {
-    if (/local\.cailab\.org/.test(ctx.request.host)) {
+  if (/cailab\.org/.test(ctx.request.header.origin)) {
+    if (/local\.cailab\.org/.test(ctx.request.header.origin)) {
       ctx.res.setHeader('Access-Control-Allow-Origin', 'http://local.cailab.org:3000');
     } else {
-      ctx.res.setHeader('Access-Control-Allow-Origin', `https://${ctx.request.host}`);
+      ctx.res.setHeader('Access-Control-Allow-Origin', ctx.request.header.origin.replace('http://', 'https://'));
     }
     ctx.res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type');
     ctx.res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
