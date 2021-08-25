@@ -1,3 +1,5 @@
+import { ObjectId } from "mongoose";
+
 export interface IGLobalConfig {
   maxTubeDeleteLimit: number;
   host: string;
@@ -7,10 +9,12 @@ export interface IGLobalConfig {
 
 export interface IUserEssential {
   _id: any;
+  authType:string;
   email: string;
   name: string; // user's full name
   groups: string[]; // array of group name, 'guest', 'users', 'visitors', or 'administrators'
   abbr?: string;
+  portrait: any;
 }
 
 export interface ITokenContent extends IUserEssential {
@@ -33,6 +37,10 @@ export interface ICustomState {
   request:any;
 }
 
+export interface IExtraContext {
+  params: any;
+}
+
 export interface IEmailVerification {
   _id: any;
   email: string;
@@ -52,7 +60,7 @@ export interface IEmailResetPassword {
 
 export interface IPortrait {
   _id: any;
-  user: IUser;
+  user: ObjectId|string|IUser;
   xs: any;
   s: any;
   m: any;

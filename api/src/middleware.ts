@@ -66,7 +66,7 @@ export default function middleware (app:koa) {
         await mongoose.connect(
           conf.secret.mongoDB.url,
           {
-            useNewUrlParser: true,
+            // useNewUrlParser: true,
             user: conf.secret.mongoDB.username,
             pass: conf.secret.mongoDB.password, 
           }
@@ -99,7 +99,7 @@ export default function middleware (app:koa) {
         }
       }
       if(ctx.headers['token']) {
-        return ctx.headers['token']
+        return ctx.headers['token'] as string;
       }
       const urlToken = ctx.URL.searchParams.get('token');
       if(urlToken) {

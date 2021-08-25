@@ -2,7 +2,7 @@ import { IUser, IEmailVerification, IEmailResetPassword, IPortrait } from './typ
 import mongoose, { Model, Document } from 'mongoose'
 import {Schema} from 'mongoose'
 
-export const PortraitSchema = new Schema({
+export const PortraitSchema = new Schema<IPortrait>({
   user: {
     type: Schema.Types.ObjectId,
     ref: 'User',
@@ -14,7 +14,7 @@ export const PortraitSchema = new Schema({
   xl: Buffer,
 });
 
-export const UserSchema = new Schema({
+export const UserSchema = new Schema<IUser>({
   email: String,
   passwordHash: String, // empty if user signed up using google account
   passwordSalt: String, // empty if user signed up using google account
@@ -30,14 +30,14 @@ export const UserSchema = new Schema({
   updatedAt: Date,
 });
 
-export const EmailVerificationSchema = new Schema({
+export const EmailVerificationSchema = new Schema<IEmailVerification>({
   email: String,
   token: String,
   createdAt: Date,
   validateUntil: Date,
 });
 
-export const EmailResetPasswordSchema = new Schema({
+export const EmailResetPasswordSchema = new Schema<IEmailResetPassword>({
   email: String,
   token: String,
   createdAt: Date,
@@ -46,12 +46,12 @@ export const EmailResetPasswordSchema = new Schema({
 });
 
 
-export interface IUserModel extends IUser, Document{}
-export interface IEmailVerificationModel extends IEmailVerification, Document{}
-export interface IEMailResetPasswordModel extends IEmailResetPassword, Document{}
-export interface IPortraitModel extends IPortrait, Document{}
+// export interface IUserModel extends IUser, Document{}
+// export interface IEmailVerificationModel extends IEmailVerification, Document{}
+// export interface IEMailResetPasswordModel extends IEmailResetPassword, Document{}
+// export interface IPortraitModel extends IPortrait, Document{}
 
-export const User:Model<IUserModel> = mongoose.model('User', UserSchema, 'users');
-export const EmailVerification:Model<IEmailVerificationModel> = mongoose.model('EmailVerification', EmailVerificationSchema, 'email_verifications');
-export const EmailResetPassword:Model<IEMailResetPasswordModel> = mongoose.model('EmailResetPassword', EmailResetPasswordSchema, 'email_reset_password');
-export const Portrait:Model<IPortraitModel> = mongoose.model('portraits', PortraitSchema, 'portraits');
+export const User = mongoose.model<IUser>('User', UserSchema, 'users');
+export const EmailVerification= mongoose.model<IEmailVerification>('EmailVerification', EmailVerificationSchema, 'email_verifications');
+export const EmailResetPassword = mongoose.model<IEmailResetPassword>('EmailResetPassword', EmailResetPasswordSchema, 'email_reset_password');
+export const Portrait = mongoose.model<IPortrait>('portraits', PortraitSchema, 'portraits');

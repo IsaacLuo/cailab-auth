@@ -2,7 +2,7 @@ import { ICustomState, IEmailVerification } from './types';
 import koa from 'koa';
 import koaBody from 'koa-body';
 import middleware from './middleware'
-import Router from 'koa-router';
+import Router, { IRouterParamContext } from 'koa-router';
 import log4js from 'log4js';
 import conf from '../conf';
 import crypto from 'crypto';
@@ -13,11 +13,13 @@ import uuid from 'uuid';
 import sharp from 'sharp';
 import fs from 'fs';
 import util from 'util';
+import { SchemaTypes } from 'mongoose';
 
 
 type RouterCtx = koa.ParameterizedContext<any, Router.IRouterParamContext<any, {}>>;
 type MyMiddleware = Router.IMiddleware<RouterCtx>;
 type Next = ()=>Promise<any>;
+type MyCtx = koa.ParameterizedContext<ICustomState, IRouterParamContext<ICustomState, {}>, any>;
 
 const readFile = util.promisify(fs.readFile);
 
@@ -29,7 +31,7 @@ const GUEST_ID = '000000000000000000000000';
 const app = new koa();
 const router = new Router();
 
-app.use( async (ctx:koa.Context, next:()=>Promise<any>) => {
+app.use( async (ctx, next) => {
   if (/cailab\.org/.test(ctx.request.origin)) {
       ctx.res.setHeader('Access-Control-Allow-Origin', ctx.request.origin)
       ctx.res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type')
@@ -41,9 +43,9 @@ app.use( async (ctx:koa.Context, next:()=>Promise<any>) => {
 app.use(koaBody({multipart:true}));
 middleware(app);
 
-function userMust (...args: Array<(ctx:RouterCtx, next:Next)=>boolean>) {
+function userMust (...args: Array<(ctx:MyCtx, next:Next)=>boolean>) {
   const arg = arguments;
-  return async (ctx:RouterCtx, next:()=>Promise<any>)=> {
+  return async (ctx:MyCtx, next:()=>Promise<any>)=> {
     if (Array.prototype.some.call(arg, f=>f(ctx))) {
       await next();
     } else {
@@ -52,26 +54,25 @@ function userMust (...args: Array<(ctx:RouterCtx, next:Next)=>boolean>) {
   };
 }
 
-function beUser (ctx:koa.ParameterizedContext<ICustomState, any>, next:()=>Promise<any>) {
+function beUser (ctx:MyCtx, next:Next) {
   return ctx.state.user && 
     (ctx.state.user.groups.indexOf('users')>=0 || ctx.state.user.groups.indexOf('emma/users')>=0) &&
     (ctx.state.user.groups.indexOf('emma/forbidden')<0);
 }
 
-function beAdmin (ctx:koa.ParameterizedContext<ICustomState, any>, next:()=>Promise<any>) {
+function beAdmin (ctx:MyCtx, next:Next) {
   return ctx.state.user && (ctx.state.user.groups.indexOf('administrators')>=0 || ctx.state.user.groups.indexOf('emma/administrators')>=0);
 }
 
-function beGuest (ctx:koa.ParameterizedContext<ICustomState, any>, next:()=>Promise<any>) {
+function beGuest (ctx:MyCtx, next:Next) {
   return ctx.state.user === undefined || ctx.state.user._id === GUEST_ID;
 }
 
-app.use(async (ctx:koa.ParameterizedContext<any, {}>, next:()=>Promise<any>)=> {
+// app.use(async (ctx:MyCtx, next:Next)=> {
+//   await next();
+// });
 
-  await next();
-});
-
-async function signToken (ctx:koa.ParameterizedContext<ICustomState, {}>, next: ()=>Promise<any>) {
+async function signToken (ctx:MyCtx, next:Next) {
   const {user} = ctx.state;
   log4js.getLogger().info('signed new token');
   // sign token
@@ -101,7 +102,7 @@ router.get('/', async (ctx)=> {
   ctx.body={message:'OK', env: process.env.NODE_ENV, sv: conf.secret.mongoDB.url};
 })
 
-const getCurrentUser =  async (ctx:koa.ParameterizedContext<ICustomState, {}>, next:()=>Promise<any>)=> {
+const getCurrentUser = async (ctx:MyCtx, next:Next) => {
   let user:any;
   user = ctx.state.user;
   if (user) {
@@ -187,7 +188,7 @@ function verifyUserForm (form) :boolean {
 }
 
 router.get('/api/user/:id/portrait/:size/:filename',
-  async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
+  async (ctx, next) => {
     let {id} = ctx.params;
     if (id === 'current') {
       id = ctx.state.user._id;
@@ -250,14 +251,14 @@ router.get('/api/user/:id/portrait/:size/:filename',
 );
 
 router.put('/api/user/:id/portrait',
-  async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
+  async (ctx, next)=> {
     if (ctx.state.user._id === ctx.params.id || ctx.state.user.groups.indexOf('administrators') >= 0) {
       await next();
     } else {
       ctx.throw(401);
     }
   },
-  async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
+  async (ctx, next) => {
     const {id} = ctx.params;
     const user = User.findById(id).exec();
     if (!user) {
@@ -265,8 +266,9 @@ router.put('/api/user/:id/portrait',
     }
 
     const {file} = ctx.request.files;
-    if (!file || !/^image/.test(file.type)) {
+    if (!file || Array.isArray(file) || !/^image/.test(file.type)) {
       ctx.throw(400);
+      return;
     }
 
     const inputBuffer = await readFile(file.path);
@@ -299,7 +301,7 @@ router.put('/api/user/:id/portrait',
  * send an email for email address verification
  * @param ctx.state.email email for verification 
  */
-const sendVerificationEmail = async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
+const sendVerificationEmail = async (ctx, next) => {
   try {
   // generate a token for email verification
   const {email} = ctx.state;
@@ -333,7 +335,7 @@ const sendVerificationEmail = async (ctx:koa.ParameterizedContext<any, {}>, next
  * send an email for password resetting
  * @param ctx.state.email email for verification 
  */
-const sendResetPasswordEmail = async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
+const sendResetPasswordEmail = async (ctx, next) => {
   try {
   // generate a token for email verification
   const user = ctx.state.data;
@@ -366,7 +368,7 @@ const sendResetPasswordEmail = async (ctx:koa.ParameterizedContext<any, {}>, nex
   await next();
 }
 
-const cleanVericicationEmail = async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
+const cleanVericicationEmail = async (ctx, next) => {
   const response = await EmailVerification.deleteMany({validateUntil: {$lt: new Date()}}).exec();
   // console.debug(response);
 }
@@ -374,7 +376,7 @@ const cleanVericicationEmail = async (ctx:koa.ParameterizedContext<any, {}>, nex
 /**
  * register new user
  */
-router.post('/api/user', async (ctx:koa.ParameterizedContext<any, {}>, next)=> {
+router.post('/api/user', async (ctx, next) => {
   const {
     name,
     email,
@@ -420,7 +422,7 @@ cleanVericicationEmail,
 /**
  * request new email verification
  */
-router.post('/api/user/emailVerification', async (ctx:koa.ParameterizedContext<any, {}>, next)=>{
+router.post('/api/user/emailVerification', async (ctx, next) =>{
   const user = ctx.state.user;
   if(user.groups.indexOf('emailNotVerified')>=0) {
     ctx.state.email = user.email;
@@ -434,7 +436,7 @@ router.post('/api/user/emailVerification', async (ctx:koa.ParameterizedContext<a
 /**
  * verify email by sending token in email
  */
-router.get('/api/emailVerification/:token', async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
+router.get('/api/emailVerification/:token', async (ctx, next)=> {
   const {token} = ctx.params;
   const emailVerification = await EmailVerification.findOne({token}).exec();
   if(!emailVerification) {
@@ -471,7 +473,7 @@ cleanVericicationEmail);
  * @bopdy, {email:}
  */
 router.post('/api/user/emailResetPassword',
-async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=>{
+async (ctx, next)=>{
   const {email} = ctx.request.body;
   const user = await User.findOne({email}).exec();
   ctx.body = {message: 'OK'};
@@ -486,7 +488,7 @@ async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=>{
 /**
  * verify email by sending token in email
  */
-router.put('/api/user/password/:token', async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
+router.put('/api/user/password/:token', async (ctx, next)=> {
   const {token} = ctx.params;
   const emailResetPassword = await EmailResetPassword.findOne({token, used: false}).exec();
   if(!emailResetPassword) {
@@ -527,7 +529,7 @@ cleanVericicationEmail);
  */
 router.put('/api/user/:id',
 // userMust(beUser),
-async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
+async (ctx, next)=> {
   const {id} = ctx.params;
   if (ctx.state.user.groups.indexOf('administrators') >= 0) {
     // administrators, can do any change
@@ -549,7 +551,7 @@ async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
   } else {
     ctx.throw(401, `not a admin`);
   }
-}, async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
+}, async (ctx, next)=> {
   // change information
   // console.warn(ctx.request.body);
   const {id} = ctx.params;
@@ -574,7 +576,7 @@ async (ctx:koa.ParameterizedContext<ICustomState, {}>, next)=> {
 
 let globalGuestToken:string = undefined;
 let globalTokenTime = new Date();
-router.post('/api/guestSession', async (ctx:koa.ParameterizedContext<any, {}>)=> {
+router.post('/api/guestSession', async (ctx)=> {
   if(!globalGuestToken || globalTokenTime.getTime() + 864000 < Date.now()) {
     globalGuestToken = jwt.sign({
         _id: GUEST_ID,
@@ -602,7 +604,7 @@ router.post('/api/guestSession', async (ctx:koa.ParameterizedContext<any, {}>)=>
 /**
  * login
  */
-router.post('/api/session', async (ctx:koa.ParameterizedContext<any, {}>)=> {
+router.post('/api/session', async (ctx)=> {
   const {
     email,
     password,
@@ -649,7 +651,7 @@ router.post('/api/session', async (ctx:koa.ParameterizedContext<any, {}>)=> {
 /**
  * logout
  */
-router.delete('/api/session',  async (ctx:koa.ParameterizedContext<any, {}>)=> {
+router.delete('/api/session',  async (ctx)=> {
   ctx.cookies.set('token', '', {domain:conf.domainAddress, maxAge: 1000, overwrite:true});
   ctx.body = {message:'OK'}
 })

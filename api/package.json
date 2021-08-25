@@ -5,7 +5,6 @@
   "dependencies": {
     "@types/koa": "^2.13.4",
     "@types/koa-router": "^7.4.4",
-    "@types/mongoose": "^5.11.97",
     "@types/nodemailer": "^6.4.4",
     "@types/sharp": "^0.28.5",
     "cross-env": "^7.0.3",
