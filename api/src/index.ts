@@ -42,7 +42,11 @@ app.use( async (ctx, next) => {
     ctx.res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
     ctx.res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
-  await next();
+  if(ctx.request.method === 'OPTIONS') {
+    ctx.status = 200;
+  } else {
+    await next();
+  }
 })
 app.use(koaBody({multipart:true}));
 middleware(app);
@@ -124,6 +128,8 @@ const getCurrentUser = async (ctx:MyCtx, next:Next) => {
     }
   }
 };
+
+router.options()
 
 router.get('/api/user/current',
 getCurrentUser,
