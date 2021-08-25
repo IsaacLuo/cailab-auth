@@ -33,10 +33,14 @@ const router = new Router();
 
 app.use( async (ctx, next) => {
   if (/cailab\.org/.test(ctx.request.origin)) {
-      ctx.res.setHeader('Access-Control-Allow-Origin', ctx.request.origin)
-      ctx.res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type')
-      ctx.res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE')
-      ctx.res.setHeader('Access-Control-Allow-Credentials', 'true')
+    if (ctx.request.origin === 'http://local.cailab.org:3000') {
+      ctx.res.setHeader('Access-Control-Allow-Origin', ctx.request.origin);
+    } else {
+      ctx.res.setHeader('Access-Control-Allow-Origin', ctx.request.origin.replace('http','https'));
+    }
+    ctx.res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type');
+    ctx.res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+    ctx.res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
   await next();
 })
