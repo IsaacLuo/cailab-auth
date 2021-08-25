@@ -129,8 +129,6 @@ const getCurrentUser = async (ctx:MyCtx, next:Next) => {
   }
 };
 
-router.options()
-
 router.get('/api/user/current',
 getCurrentUser,
 signToken);
