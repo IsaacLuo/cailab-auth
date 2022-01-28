@@ -9,7 +9,7 @@ import crypto from 'crypto';
 import { User, EmailVerification, Portrait, EmailResetPassword } from './models';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
-import uuid from 'uuid';
+import {v4} from 'uuid';
 import sharp from 'sharp';
 import fs from 'fs';
 import util from 'util';
@@ -313,7 +313,7 @@ const sendVerificationEmail = async (ctx, next) => {
   try {
   // generate a token for email verification
   const {email} = ctx.state;
-  const token = uuid.v4();
+  const token = v4();
   const now = new Date();
   const validateUntil = new Date(Date.now()+3600*1000); // 1 hour
   await EmailVerification.create({
@@ -347,7 +347,7 @@ const sendResetPasswordEmail = async (ctx, next) => {
   try {
   // generate a token for email verification
   const user = ctx.state.data;
-  const token = uuid.v4();
+  const token = v4();
   const now = new Date();
   const validateUntil = new Date(Date.now()+3600*1000); // 1 hour
   await EmailResetPassword.create({
